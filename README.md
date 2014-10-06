@@ -11,36 +11,37 @@ To install the package, include the following in your composer.json.
 
 And then include the following service provider in your app.php.
 
-...
+```
 'Owlgrin\Throttle\ThrottleServiceProvider'
-...
+```
 
 
 And lastly, publish the config.
-...
+```
 php artisan config:publish sahil/throttle
-...
+```
 
 Usage
+=====
 
 Write this command in your artisan to create migrations
 
-...
+```
 throttle:table
-...
+```
 
 Now migrate all the tables to your mysql db
 
-...
+```
 php artisan migrate
-..
+```
 
 Entry of New Plan
 
 Its time to create a new plan by using Owlgrin\Plan\PlanRepo 's add function
 
 plan's format is as follows
-
+````
 $plan = {
   "plan":{
       "name" : "Simple",
@@ -82,14 +83,14 @@ $plan = {
     ]
   }
 }
-
+````
 
 Subscription of user
 
 You can subscribe a user with plan id by using
-...
+```
 Owlgrin\Throttle\Subscriber\SubscriberRepo
-...
+```
 
 subscribe($userId, $planId)
 
@@ -97,9 +98,9 @@ Biller
 
 You can calculate the bill by just using
 
-...
+```
 Owlgrin\Throttle\Biller\Biller
-...
+```
 
 calculate($userId)
 
@@ -107,6 +108,7 @@ or can estimate bill by
 
 estimate($plan)
 
+````
 $plan = {'plan_id':1,
           'feature':{
             {feature_id}:{usage},
@@ -114,3 +116,4 @@ $plan = {'plan_id':1,
           }
         }
         
+````
