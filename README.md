@@ -5,9 +5,9 @@ Throttle allows you to maintain  a integration between your plans and your featu
 Installation
 ============
 To install the package, include the following in your composer.json.
-...
+```
 "sahil/throttle": "dev-master"
-...
+```
 
 And then include the following service provider in your app.php.
 
