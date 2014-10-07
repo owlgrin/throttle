@@ -87,7 +87,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 
 			if($update == 0)
 			{
-				$this->addUsageForFeatures($usage->subscription_id, $usage->feature_id, $incrementCount);		
+				$this->addUsageByFeatureId($subscriptionId, $featureId, $incrementCount);		
 			}
 		}
 		catch(Exceptions\LimitExceededException $e)
@@ -100,7 +100,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 		}
 	}
 
-	private function checkFeatureLimit($subscriptionId, $featureId, $incrementCount)
+	public function checkFeatureLimit($subscriptionId, $featureId, $incrementCount)
 	{
 		$limit = $this->db->table('user_feature_usage AS ufu')
 			->join('user_feature_limit as ufl', function($join)
@@ -115,13 +115,13 @@ class DbSubscriberRepo implements SubscriberRepo {
 	
 		if(! is_null($limit->fLimit))
 		{
-			return $limit->fLimit > $limit->used;
+			return $limit->fLimit > $limit->used+$incrementCount;
 		}
 
 		return true;
 	}
 	
-	private function addUsageForFeatures($subscriptionId, $featureId, $usedQuantity)
+	private function addUsageByFeatureId($subscriptionId, $featureId, $usedQuantity)
 	{
 		$this->db->table('user_feature_usage')->insert(
 		[
@@ -162,5 +162,83 @@ class DbSubscriberRepo implements SubscriberRepo {
 			->where('plan_id', $planId)
 			->where('feature_id', $featureId)
 			->get();
+	}
+	public function subscription($userId)
+	{
+		$user = $this->db->table('subscriptions')
+			->where('user_id', $userId)
+			->select('id AS subscriptionId', 'plan_id AS planId')
+			->first();
+
+		return $user;
+	}
+
+	public function can($subscriptionId, $identifier, $incrementCount)
+	{
+		$limit = $this->db->table('user_feature_usage AS ufu')
+			->join('user_feature_limit as ufl', function($join)
+			{
+				$join->on('ufu.subscription_id', '=', 'ufl.subscription_id');
+				$join->on('ufu.feature_id', '=', 'ufl.feature_id');
+			})
+			->join('features as f', function($join)
+			{
+				$join->on('f.id', '=', 'ufu.feature_id');
+			})
+			->where('ufu.subscription_id', $subscriptionId)
+			->where('f.identifier', $identifier)
+			->select($this->db->raw('sum( ufu.used_quantity ) AS used, ufl.limit AS fLimit'))
+			->first();
+
+		if(! is_null($limit->fLimit))
+		{
+			return $limit->fLimit > $limit->used+$incrementCount;
+		}
+
+		return true;
+	}
+
+	public function increment($subscriptionId, $identifier, $count = 1)
+	{
+		try
+		{
+			if(! $this->can($subscriptionId, $identifier, $count))
+			{
+				throw new Exceptions\LimitExceededException;
+			}			
+
+			$today = Carbon::today()->toDateString();
+
+			$update = $this->db->table('user_feature_usage AS ufu')
+				->join('features AS f', 'ufu.feature_id', '=', 'f.id')
+				->where('ufu.subscription_id', $subscriptionId)
+				->where('f.identifier', $identifier)
+				->where('ufu.date', $today)
+				->increment('ufu.used_quantity', $count);
+
+			if($update == 0)
+			{
+				$this->addUsageByFeatureIdentifier($subscriptionId, $identifier, $count);
+			}
+		}
+		catch(Exceptions\LimitExceededException $e)
+		{
+			throw new Exceptions\LimitExceededException;
+		}
+		catch(\Exception $e)
+		{
+			throw new Exceptions\InternalException;
+		}
+	}
+
+	private function addUsageByFeatureIdentifier($subscriptionId, $identifier, $usedQuantity)
+	{
+		$this->db->table('user_feature_usage')->insert(
+		[
+			'subscription_id' 	=> $subscriptionId,
+			'feature_id'    	=> $this->db->raw("(select id from features where identifier = '$identifier')"),
+			'used_quantity' 	=> $usedQuantity,
+			'date'    			=> $this->db->raw('now()')
+		]);
 	}
 }
