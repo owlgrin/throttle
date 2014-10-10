@@ -11,4 +11,5 @@ interface SubscriberRepo {
 	public function subscription($userId);
 	public function can($subscriptionId, $identifier, $incrementCount);
 	public function increment($subscriptionId, $identifier, $count);
+	public function left($subscriptionId, $identifier);
 }

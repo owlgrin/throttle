@@ -42,12 +42,12 @@ class Throttle {
 
 	public function subscribe($planId)
 	{
-		return $this->subscribe($this->user, $planId);
+		return $this->subscriber->subscribe($this->user, $planId);
 	}
 
 	public function can($identifier, $count)
 	{
-		return $this->subscriber->can($this->subscription->subscriptionId, $identifier, $count);
+		return $this->subscriber->can($this->subscription['subscriptionId'], $identifier, $count);
 	}
 
 	public function bill($startDate, $endDate, $detail = false)
@@ -62,11 +62,16 @@ class Throttle {
 
 	public function increment($identifier, $quantity = 1)
 	{
-		return $this->subscriber->increment($this->subscription->subscriptionId, $identifier, $quantity);
+		return $this->subscriber->increment($this->subscription['subscriptionId'], $identifier, $quantity);
 	}
 	
 	public function plan($plan)
 	{
 		return $this->plan->add($plan);
+	}
+
+	public function left($identifier)
+	{
+		return $this->subscriber->left($this->subscription['subscriptionId'], $identifier);
 	}
 }

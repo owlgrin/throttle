@@ -9,7 +9,7 @@ class ThrottleServiceProvider extends ServiceProvider {
 	 *
 	 * @var bool
 	 */
-	protected $defer = false;
+	protected $defer = true;
 
 	/**
 	 * Bootstrap the application events.
@@ -60,4 +60,5 @@ class ThrottleServiceProvider extends ServiceProvider {
 
 		$this->app->singleton('throttle', 'Owlgrin\Throttle\Throttle');
 	}
+
 }

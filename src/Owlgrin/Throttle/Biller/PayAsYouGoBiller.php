@@ -121,7 +121,7 @@ class PayAsYouGoBiller implements Biller{
 
 		//finding limit of the feature
 		$features = $this->subscriber->featureLimit($planId, $featureId);
-
+dd($features);
 		foreach($features as $index => $feature) 
 		{
 			$details = [];
