@@ -192,7 +192,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 
 		if(! is_null($limit['fLimit']))
 		{
-			return $limit['fLimit'] > $limit['used']+$incrementCount;
+			return $limit['fLimit'] >= $limit['used']+$incrementCount;
 		}
 
 		return true;
