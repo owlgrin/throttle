@@ -16,7 +16,7 @@ class UserSubscribeCommand extends Command {
 	 *
 	 * @var string
 	 */
-	protected $name = 'user:subscribe';
+	protected $name = 'throttle:subscribe';
 
 	/**
 	 * The console command description.
