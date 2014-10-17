@@ -63,8 +63,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 		//from plan_features tables  
 		//GROUP BY `feature_id`
 		//feature _id is grouped
-		$usage = $this->db->insert("INSERT into ".Config::get('throttle::tables.user_feature_usage')."(`subscription_id`, `feature_id`, `used_quantity`, `date`) SELECT $subscriptionId, `feature_id`, 0, now() from ".Config::get('throttle::tables.plan_feature')." where `plan_id` = $planId GROUP BY `feature_id`");
-		return;
+		return $this->db->insert("INSERT into ".Config::get('throttle::tables.user_feature_usage')."(`subscription_id`, `feature_id`, `used_quantity`, `date`) SELECT $subscriptionId, `feature_id`, 0, now() from ".Config::get('throttle::tables.plan_feature')." where `plan_id` = $planId GROUP BY `feature_id`");
 	}
 
 	private function addInitialLimitForFeatures($subscriptionId, $planId)
@@ -83,10 +82,10 @@ class DbSubscriberRepo implements SubscriberRepo {
 		//IF() condition in sql checks only top values
 		// GROUP BY `feature_id`
 		// grouping feature_ids
-		$limit = $this->db->insert("INSERT into ".Config::get('throttle::tables.user_feature_limit')."(`subscription_id`, `feature_id`, `limit`) SELECT $subscriptionId, `feature_id` as featureId, IF(`limit` IS NULL, NULL, SUM(`limit`)) AS `limit` FROM (SELECT `feature_id`, `limit` FROM ".Config::get('throttle::tables.plan_feature')." WHERE `plan_id` = $planId ORDER BY `tier` DESC) AS `t1` GROUP BY `feature_id`");
-		return;
+		return $this->db->insert("INSERT into ".Config::get('throttle::tables.user_feature_limit')."(`subscription_id`, `feature_id`, `limit`) SELECT $subscriptionId, `feature_id` as featureId, IF(`limit` IS NULL, NULL, SUM(`limit`)) AS `limit` FROM (SELECT `feature_id`, `limit` FROM ".Config::get('throttle::tables.plan_feature')." WHERE `plan_id` = $planId ORDER BY `tier` DESC) AS `t1` GROUP BY `feature_id`");
 	}
 
+	//increments usage of a feature by featureid
 	public function incrementUsage($subscriptionId, $featureId, $incrementCount = 1)
 	{
 		try
@@ -118,6 +117,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 		}
 	}
 
+	//check whether a user can access a feature or not by featureId
 	public function checkFeatureLimit($subscriptionId, $featureId, $incrementCount)
 	{
 		$limit = $this->db->table(Config::get('throttle::tables.user_feature_usage').' AS ufu')
@@ -139,6 +139,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 		return true;
 	}
 	
+	//manually adds usage of a subsription 
 	private function addUsageByFeatureId($subscriptionId, $featureId, $usedQuantity)
 	{
 		$this->db->table(Config::get('throttle::tables.user_feature_usage'))->insert(
@@ -150,6 +151,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 		]);			
 	}
 
+	//manually setts limit of a subscription
 	public function setLimit($subscriptionId, $featureId, $limit)
 	{
 		$this->db->table(Config::get('throttle::tables.user_feature_limit'))
@@ -158,6 +160,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 			->update(['limit' => $limit]);
 	}
 
+	//returns usage of the user
 	public function getUsage($userId, $startDate, $endDate)
 	{
 		//if end date is then then end date id today
@@ -172,6 +175,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 			->get();
 	}
 
+	//returns limit of the particular feature
 	public function featureLimit($planId, $featureId)
 	{
 		return $this->db->table(Config::get('throttle::tables.plan_feature').' as pf')
@@ -181,6 +185,8 @@ class DbSubscriberRepo implements SubscriberRepo {
 			->where('feature_id', $featureId)
 			->get();
 	}
+
+	//returns subscription of a user
 	public function subscription($userId)
 	{
 		$user = $this->db->table(Config::get('throttle::tables.subscriptions'))
@@ -191,6 +197,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 		return $user;
 	}
 
+	//check whether a user can access a feature or not by identifier
 	public function can($subscriptionId, $identifier, $incrementCount)
 	{
 		$limit = $this->db->table(Config::get('throttle::tables.user_feature_usage').' AS ufu')
@@ -216,6 +223,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 		return true;
 	}
 
+	//increments usage of a feature by identifier
 	public function increment($subscriptionId, $identifier, $count = 1)
 	{
 		try
@@ -249,6 +257,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 		}
 	}
 
+	//add usage of a feature identifier
 	private function addUsageByFeatureIdentifier($subscriptionId, $identifier, $usedQuantity)
 	{
 		$this->db->table(Config::get('throttle::tables.user_feature_usage'))->insert(
@@ -260,6 +269,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 		]);
 	}
 
+	//returns limit of a feature left
 	public function left($subscriptionId, $identifier)
 	{
 		$limit = $this->db->table(Config::get('throttle::tables.user_feature_usage').' AS ufu')
