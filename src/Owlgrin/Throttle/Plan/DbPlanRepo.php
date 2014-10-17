@@ -3,7 +3,7 @@
 use Illuminate\Database\DatabaseManager as Database;
 use Owlgrin\Throttle\Plan\PlanRepo;
 use Owlgrin\Throttle\Exceptions;
-use Exception;
+use Exception, Config;
 
 class DbPlanRepo implements PlanRepo {
 
@@ -23,7 +23,6 @@ class DbPlanRepo implements PlanRepo {
 
 			$plan = $plan['plan'];
 			//add a plan
-
 			$planId = $this->addPlan($plan['name'], $plan['identifier'], $plan['description']);
 			
 			//for every feature
@@ -55,7 +54,7 @@ class DbPlanRepo implements PlanRepo {
 	{
 		try
 		{
-			$planId = $this->db->table('plans')->insertGetId([
+			$planId = $this->db->table(Config::get('throttle::tables.plans'))->insertGetId([
 				'name' 		  => $name,
 				'identifier'  => $identifier,
 				'description' => $description
@@ -72,7 +71,7 @@ class DbPlanRepo implements PlanRepo {
 
 	private function addFeature($name, $identifier)
 	{
-		$featureId = $this->db->table('features')->insertGetId([
+		$featureId = $this->db->table(Config::get('throttle::tables.features'))->insertGetId([
 			'name' => $name,
 			'identifier' => $identifier
 		]);
@@ -82,7 +81,7 @@ class DbPlanRepo implements PlanRepo {
 
 	private function addPlanFeature($planId, $featureId, $rate, $perQuantity, $tier, $limit)
 	{
-		$this->db->table('plan_feature')->insert([
+		$this->db->table(Config::get('throttle::tables.plan_feature'))->insert([
 			'plan_id' => $planId,
 			'feature_id' => $featureId,
 			'rate' => $rate,

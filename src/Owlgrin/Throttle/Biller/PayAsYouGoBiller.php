@@ -5,168 +5,94 @@ use Owlgrin\Throttle\Subscriber\SubscriberRepo;
 
 class PayAsYouGoBiller implements Biller{
 
-	protected $subscriber;
+	protected $subscription;
 
-	public function __construct(SubscriberRepo $subscriber)
+	public function __construct(SubscriberRepo $subscription)
 	{
-		$this->subscriber = $subscriber;
-	}	
-
-	public function billCalculate($userId, $startDate, $endDate = null, $detail = false)
-	{
-		return $detail == false ? $this->calculate($userId, $startDate, $endDate) : $this->calculateDetail($userId, $startDate, $endDate);
+		$this->subscription = $subscription;
 	}
 
-	public function billEstimate($palnId, $features, $detail = false)
-	{
-		return $detail == false ? $this->estimate($palnId, $features) : $this->estimateDetail($palnId, $features);
-	}
-
-	public function calculate($userId, $startDate, $endDate = null)
-	{
-		$userDetails = $this->subscriber->userDetails($userId, $startDate, $endDate);
-
-		$totalPrice = 0;
-
-		foreach($userDetails as $index => $usage) 
-		{
-			$totalPrice  += $this->priceCalculator($usage->plan_id, $usage->feature_id, $usage->used_quantity);
-		}
-
-		return $totalPrice;
-	}
-
-	public function estimate($planId, $features)
-	{
-		$totalPrice = 0;
-
-		foreach($features as $featureId => $usage) 
-		{
-			$totalPrice += $this->priceCalculator($planId, $featureId, $usage);
-		}
-
-		return $totalPrice;
-	}
-
-	private function priceCalculator($planId, $featureId, $usage)
-	{
-		$bill = 0;
-
-		$features = $this->subscriber->featureLimit($planId, $featureId);
-
-		foreach($features as $index => $feature) 
-		{
-			if((int)$usage > (int)$feature->limit)
-			{
-				if((int) $feature->limit == null)
-				{
-					$bill += $feature->rate*$usage;
-					break;
-				}
-				else
-				{
-					$bill += $feature->rate*$feature->limit;
-					$usage = $usage - $feature->limit;
-				}
-			}
-			else
-			{
-				$bill += $feature->rate*$usage;
-				break;
-			}
-		}
-
-		return $bill;
-	}
-
-	public function estimatedetail($planId, $features)
+	public function estimate($usages)
 	{		
-		$totalPrice = 0;
-		$detail = [];
-
-		foreach($features as $featureId => $usage) 
-		{
-			$detail = $this->detailPriceCalculator($planId, $featureId, $usage);
-			$totalPrice += $detail['bill'];
-
-			$finaldetail[] = $detail;
-		}
-
-		return ['detail' => $finaldetail, 'total' => $totalPrice];
+		return $this->calculateByUsage($usages);
 	}
-	
-	public function calculatedetail($userId, $startDate, $endDate = null)
+
+	public function bill($userId, $startDate, $endDate)
 	{
-		//finding details of the user
-		$userDetails = $this->subscriber->userDetails($userId, $startDate, $endDate);
+		$usages = $this->subscription->getUsage($userId, $startDate, $endDate);
 
-		$totalPrice = 0;
-		$detail = [];
+		return $this->calculateByUsage($usages);
+	}
 
-		foreach($userDetails as $index => $usage) 
+	public function calculateByUsage($usages)
+	{
+		$amount = 0;
+
+		foreach($usages as $index => $feature) 
 		{
-			$detail  = $this->detailPriceCalculator($usage->plan_id, $usage->feature_id, $usage->used_quantity);
-			$totalPrice += $detail['bill'];
-
-			$finaldetail[] = $detail;
+			$tiers = $this->getTierByFeature($feature['plan_id'], $feature['feature_id']);
+			
+			$lineItem = $this->calculateByTier($tiers, $feature['feature_id'], $feature['used_quantity']);
+		
+			$amount += $lineItem['amount'];
+			$lines[] = $lineItem;
 		}
 
-		return ['detail' => $finaldetail, 'total' =>$totalPrice];
+		return ['lines' => $lines, 'amount' => $amount];
 	}
-	
-	private function detailPriceCalculator($planId, $featureId, $usage)
+
+	private function getTierByFeature($planId, $featureId)
+	{
+		//finding limit of the feature
+		return $this->subscription->featureLimit($planId, $featureId);
+	}
+
+	private function calculateByTier($tiers, $featureId, $usage)
 	{
 		$bill = 0;
-		$detail = [];
+		$lineItem = [];
 
-		//finding limit of the feature
-		$features = $this->subscriber->featureLimit($planId, $featureId);
-dd($features);
-		foreach($features as $index => $feature) 
+		foreach($tiers as $index => $feature) 
 		{
-			$details = [];
-			
-			if((int)$usage > (int)$feature->limit)
+			$lineItems = [];
+
+			if((int)$usage > (int)$feature['limit'])
 			{
-
-				if((int) $feature->limit == null)
+				if((int) $feature['limit'] == null)
 				{
-					$details['limit'] = $feature->limit;	
-					$details['usage'] = $usage;
-					$details['rate'] = $feature->rate;
-					$details['amount'] = $usage*$feature->rate;
-					$detail['record'][] = $details;
+					$lineItems['limit'] = $feature['limit'];	
+					$lineItems['usage'] = $usage;
+					$lineItems['rate'] = $feature['rate'];
+					$lineItems['amount'] = $feature['rate']*($feature['limit']/$feature['per_quantity']);
+					$lineItem[] = $lineItems;
 
-					$bill += $feature->rate*$usage;
+					$bill += $lineItems['amount'];
 					break;
 				}
 				else
 				{
-					$details['limit'] = $feature->limit;
-					$details['usage'] = $feature->limit;
-					$details['rate'] = $feature->rate;
-					$details['amount'] = $feature->limit*$feature->rate;
-					$detail['record'][] = $details;
+					$lineItems['limit'] = $feature['limit'];
+					$lineItems['usage'] = $feature['limit'];
+					$lineItems['rate'] = $feature['rate'];
+					$lineItems['amount'] = $feature['rate']*($feature['limit']/$feature['per_quantity']);
+					$lineItem[] = $lineItems;
 				
-					$bill += $feature->rate*$feature->limit;
-					$usage = $usage - $feature->limit;
+					$bill += $lineItems['amount'];
+					$usage = $usage - $feature['limit'];
 				}
 			}
 			else
-			{
-				$details['limit'] = $feature->limit;
-				$details['usage'] = $usage;
-				$details['rate'] = $feature->rate;
-				$details['amount'] = $usage*$feature->rate;
-				$detail['record'][] = $details;
-				$bill += $feature->rate*$usage;
+			{			
+				$lineItems['limit'] = $feature['limit'];
+				$lineItems['usage'] = $usage;
+				$lineItems['rate'] = $feature['rate'];
+				$lineItems['amount'] = $feature['rate']*($usage/$feature['per_quantity']);
+				$lineItem[] = $lineItems;
+				$bill += $lineItems['amount'];
 				break;
 			}
 		}
 
-		$detail['feature_id'] = $featureId;
-		$detail['feature_name'] = $feature->name;
-
-		return ['detail' => $detail, 'bill' => $bill];
+		return ['tiers' => $lineItem, 'feature_id' => $featureId, 'feature_name' => $feature['name'], 'amount' => $bill];
 	}
 }

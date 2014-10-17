@@ -9,7 +9,7 @@ class ThrottleServiceProvider extends ServiceProvider {
 	 *
 	 * @var bool
 	 */
-	protected $defer = true;
+	protected $defer = false;
 
 	/**
 	 * Bootstrap the application events.
@@ -49,7 +49,20 @@ class ThrottleServiceProvider extends ServiceProvider {
 			return new \Owlgrin\Throttle\Commands\ThrottleTableCommand;
 		});
 
+		$this->app->bindShared('command.user.subscribe', function($app)
+		{
+			return $app->make('Owlgrin\Throttle\Commands\UserSubscribeCommand');
+		});
+
+		$this->app->bindShared('command.plan.entry', function($app)
+		{
+			return $app->make('Owlgrin\Throttle\Commands\PlanEntryCommand');
+		});
+
+
 		$this->commands('command.throttle.table');
+		$this->commands('command.user.subscribe');
+		$this->commands('command.plan.entry');
 	}
 
 	protected function registerRepositories()
