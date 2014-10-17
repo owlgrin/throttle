@@ -50,14 +50,14 @@ class Throttle {
 		return $this->subscriber->can($this->subscription['subscriptionId'], $identifier, $count);
 	}
 
-	public function bill($startDate, $endDate, $detail = false)
+	public function bill($startDate, $endDate)
 	{
-		return $this->biller->billCalculate($this->user, $startDate, $endDate, $detail);
+		return $this->biller->bill($this->user, $startDate, $endDate);
 	}
 
-	public function estimate($planId, $features, $detail = false)
+	public function estimate($usages)
 	{
-		return $this->biller->billEstimate($planId, $features, $detail);
+		return $this->biller->estimate($usages);
 	}
 
 	public function increment($identifier, $quantity = 1)
