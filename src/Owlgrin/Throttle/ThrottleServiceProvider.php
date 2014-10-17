@@ -53,11 +53,12 @@ class ThrottleServiceProvider extends ServiceProvider {
 	}
 
 	protected function registerRepositories()
-	{
+	{		
 		$this->app->bind('Owlgrin\Throttle\Biller\Biller', 'Owlgrin\Throttle\Biller\PayAsYouGoBiller');
 		$this->app->bind('Owlgrin\Throttle\Subscriber\SubscriberRepo', 'Owlgrin\Throttle\Subscriber\DbSubscriberRepo');
 		$this->app->bind('Owlgrin\Throttle\Plan\PlanRepo', 'Owlgrin\Throttle\Plan\DbPlanRepo');
 
 		$this->app->singleton('throttle', 'Owlgrin\Throttle\Throttle');
 	}
+
 }

@@ -3,7 +3,7 @@
 use Owlgrin\Throttle\Biller\Biller;
 use Owlgrin\Throttle\Subscriber\SubscriberRepo;
 
-class PayAsYouGoBiller implements Biller{
+class PayAsYouGoBiller implements Biller {
 
 	protected $subscriber;
 
@@ -56,22 +56,22 @@ class PayAsYouGoBiller implements Biller{
 
 		foreach($features as $index => $feature) 
 		{
-			if((int)$usage > (int)$feature->limit)
+			if((int)$usage > (int)$feature['limit'])
 			{
-				if((int) $feature->limit == null)
+				if((int) $feature['limit'] == null)
 				{
-					$bill += $feature->rate*$usage;
+					$bill += $feature['rate']*$usage;
 					break;
 				}
 				else
 				{
-					$bill += $feature->rate*$feature->limit;
-					$usage = $usage - $feature->limit;
+					$bill += $feature['rate']*$feature['limit'];
+					$usage = $usage - $feature['limit'];
 				}
 			}
 			else
 			{
-				$bill += $feature->rate*$usage;
+				$bill += $feature['rate']*$usage;
 				break;
 			}
 		}
@@ -126,46 +126,46 @@ class PayAsYouGoBiller implements Biller{
 		{
 			$details = [];
 			
-			if((int)$usage > (int)$feature->limit)
+			if((int)$usage > (int)$feature['limit'])
 			{
 
-				if((int) $feature->limit == null)
+				if((int) $feature['limit'] == null)
 				{
-					$details['limit'] = $feature->limit;	
+					$details['limit'] = $feature['limit'];	
 					$details['usage'] = $usage;
-					$details['rate'] = $feature->rate;
-					$details['amount'] = $usage*$feature->rate;
+					$details['rate'] = $feature['rate'];
+					$details['amount'] = $usage*$feature['rate'];
 					$detail['record'][] = $details;
 
-					$bill += $feature->rate*$usage;
+					$bill += $feature['rate']*$usage;
 					break;
 				}
 				else
 				{
-					$details['limit'] = $feature->limit;
-					$details['usage'] = $feature->limit;
-					$details['rate'] = $feature->rate;
-					$details['amount'] = $feature->limit*$feature->rate;
+					$details['limit'] = $feature['limit'];
+					$details['usage'] = $feature['limit'];
+					$details['rate'] = $feature['rate'];
+					$details['amount'] = $feature['limit']*$feature['rate'];
 					$detail['record'][] = $details;
 				
-					$bill += $feature->rate*$feature->limit;
-					$usage = $usage - $feature->limit;
+					$bill += $feature['rate']*$feature['limit'];
+					$usage = $usage - $feature['limit'];
 				}
 			}
 			else
 			{
-				$details['limit'] = $feature->limit;
+				$details['limit'] = $feature['limit'];
 				$details['usage'] = $usage;
-				$details['rate'] = $feature->rate;
-				$details['amount'] = $usage*$feature->rate;
+				$details['rate'] = $feature['rate'];
+				$details['amount'] = $usage*$feature['rate'];
 				$detail['record'][] = $details;
-				$bill += $feature->rate*$usage;
+				$bill += $feature['rate']*$usage;
 				break;
 			}
 		}
 
 		$detail['feature_id'] = $featureId;
-		$detail['feature_name'] = $feature->name;
+		$detail['feature_name'] = $feature['name'];
 
 		return ['detail' => $detail, 'bill' => $bill];
 	}

@@ -92,7 +92,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 		}
 		catch(Exceptions\LimitExceededException $e)
 		{
-			throw new Exceptions\LimitExceededException;
+        throw new Exceptions\InternalException('exceptions.repo.unknown');
 		}
 		catch(\Exception $e)
 		{
@@ -156,8 +156,8 @@ class DbSubscriberRepo implements SubscriberRepo {
 
 	public function featureLimit($planId, $featureId)
 	{
-		return $this->db->table('plan_feature as pfm')
-			->join('features as f', 'f.id', '=', 'pfm.feature_id')
+		return $this->db->table('plan_feature as pf')
+			->join('features as f', 'f.id', '=', 'pf.feature_id')
 			->select('limit', 'rate', 'name')
 			->where('plan_id', $planId)
 			->where('feature_id', $featureId)
@@ -190,9 +190,9 @@ class DbSubscriberRepo implements SubscriberRepo {
 			->select($this->db->raw('sum( ufu.used_quantity ) AS used, ufl.limit AS fLimit'))
 			->first();
 
-		if(! is_null($limit->fLimit))
+		if(! is_null($limit['fLimit']))
 		{
-			return $limit->fLimit > $limit->used+$incrementCount;
+			return $limit['fLimit'] >= $limit['used']+$incrementCount;
 		}
 
 		return true;
@@ -240,5 +240,30 @@ class DbSubscriberRepo implements SubscriberRepo {
 			'used_quantity' 	=> $usedQuantity,
 			'date'    			=> $this->db->raw('now()')
 		]);
+	}
+
+	public function left($subscriptionId, $identifier)
+	{
+		$limit = $this->db->table('user_feature_usage AS ufu')
+			->join('user_feature_limit as ufl', function($join)
+			{
+				$join->on('ufu.subscription_id', '=', 'ufl.subscription_id');
+				$join->on('ufu.feature_id', '=', 'ufl.feature_id');
+			})
+			->join('features as f', function($join)
+			{
+				$join->on('f.id', '=', 'ufu.feature_id');
+			})
+			->where('ufu.subscription_id', $subscriptionId)
+			->where('f.identifier', $identifier)
+			->select($this->db->raw('sum( ufu.used_quantity ) AS used, ufl.limit AS fLimit'))
+			->first();
+
+		if(! is_null($limit['fLimit']))
+		{
+			return $limit['fLimit'] - $limit['used'];
+		}
+
+		return null;
 	}
 }
