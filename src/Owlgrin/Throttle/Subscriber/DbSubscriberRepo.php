@@ -160,6 +160,15 @@ class DbSubscriberRepo implements SubscriberRepo {
 			->update(['limit' => $limit]);
 	}
 
+	//manually increment limit of a subscription
+	public function incrementLimit($subscriptionId, $featureId, $value)
+	{
+		$this->db->table(Config::get('throttle::tables.user_feature_limit'))
+			->where('subscription_id', $subscriptionId)
+			->where('feature_id', $featureId)
+			->increment('limit', $value);
+	}
+
 	//returns usage of the user
 	public function getUsage($userId, $startDate, $endDate)
 	{
