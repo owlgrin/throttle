@@ -303,4 +303,16 @@ class DbSubscriberRepo implements SubscriberRepo {
 
 		return null;
 	}
+
+	public function canReduceLimit($subscriptionId, $featureId, $limit)
+	{
+		$feature = $this->db->select("SELECT * FROM ".Config::get('throttle::tables.user_feature_limit')." WHERE `subscription_id` = ".$subscriptionId." AND feature_id = ".$subscriptionId." AND `limit` >= ((SELECT `used_quantity` FROM ".Config::get('throttle::tables.user_feature_usage')." WHERE `subscription_id` = ".$subscriptionId." AND `feature_id` = ".$featureId.") + ".$limit.")");
+	
+		if($feature)
+		{
+			return true;
+		}
+
+		return false;
+	}
 }

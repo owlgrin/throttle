@@ -2,5 +2,5 @@
 
 interface PackRepo {
 
-	public function addPack($plan);
+	public function store($pack);
 }
