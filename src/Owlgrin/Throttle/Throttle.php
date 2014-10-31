@@ -99,13 +99,11 @@ class Throttle {
 
 	public function can($identifier, $count = 1, $reduce = true)
 	{
-		//return $this->subscriber->can($this->subscription['subscriptionId'], $identifier, $count);
-
 		$limit = $this->redis->hashGet("throttle:hashes:limit:{$identifier}", $this->user);
 
 		if($limit === false)
 		{
-	        $limit = $this->subscriber->left($this->subscription['subscriptionId'], $identifier);
+	        $limit = $this->subscriber->left($this->subscription['subscriptionId'], $identifier) - $this->usages[$identifier];
 			
 			$this->redis->hashSet("throttle:hashes:limit:{$identifier}", $this->user, $limit);
 		}

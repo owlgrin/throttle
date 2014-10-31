@@ -100,7 +100,7 @@ class DbPlanRepo implements PlanRepo {
 			unset($features[$index]);
 			$features[$feature['identifier']] = $feature;
 		}
-		
+
 		return $features;
 	}
 }
