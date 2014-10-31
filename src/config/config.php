@@ -48,6 +48,16 @@ return array(
 		 * This table stores limit made by the user
 		 * of a particular feature
 		 */
-		'user_feature_limit' => 'user_feature_limit'
+		'user_feature_limit' => 'user_feature_limit',
+		/**
+		 * This table stores different packs
+		 * having price and quantity
+		 */
+		'packs' => 'packs',
+		/**
+		 * This table stores packs used by the user
+		 * with units
+		 */
+		'user_packs' => 'user_packs'
 	),
 );

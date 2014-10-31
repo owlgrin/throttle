@@ -64,6 +64,20 @@ class Throttle {
 		$this->usages[$identifier] += $count;
 	}
 
+	//this function sets used count
+	public function setUsedCount($identifier, $value = 0)
+	{
+		$this->used[$identifier] = $value;
+
+		return $this;
+	}
+
+	//this function returns used count
+	public function getUsedCount($identifier)
+	{
+		return $this->used[$identifier];
+	}
+
 	private function setUsages()
 	{
 		foreach($this->features as $index => $feature) 
@@ -73,7 +87,7 @@ class Throttle {
 				$this->usages[$feature['identifier']] = 0;
 			}
 		}	
-		
+
 		return $this->usages;	
 	}
 

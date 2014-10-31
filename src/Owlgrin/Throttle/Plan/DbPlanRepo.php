@@ -94,7 +94,7 @@ class DbPlanRepo implements PlanRepo {
 	public function getFeaturesByPlan($planId)
 	{
 		$features = $this->db->select("SELECT * FROM ".Config::get('throttle::tables.features')." Where id IN (Select distinct(feature_id) from " .Config::get('throttle::tables.plan_feature')." Where `plan_id` = {$planId} )");
-		
+
 		foreach($features as $index => $feature) 
 		{
 			unset($features[$index]);
