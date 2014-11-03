@@ -131,7 +131,7 @@ class DbPackRepo implements PackRepo {
 		}	
 	}
 
-	public function removePacksForUser($subscriptionId, $packId, $units = 1)
+	public function removePacksForUser($packId, $subscriptionId, $units = 1)
 	{
 		try
 		{
@@ -146,9 +146,9 @@ class DbPackRepo implements PackRepo {
 			{
 				throw new Exceptions\InvalidInputException('No such pack with ' . $units . ' unit exists for user');	
 			}
-
-			$userPack= $this->getPackByUser($subscriptionId, $packId);
 			
+			$userPack= $this->getPackBySubscriptionId($subscriptionId, $packId);
+
 			if($userPack['units'] == $units)
 			{
 				$this->db->table(Config::get('throttle::tables.user_packs'))
@@ -186,7 +186,7 @@ class DbPackRepo implements PackRepo {
 		return false;
 	}
 
-	public function getPackByUser($subscriptionId, $packId)
+	public function getPackBySubscriptionId($subscriptionId, $packId)
 	{
 		$pack = $this->db->table(Config::get('throttle::tables.user_packs'))
 				->where('pack_id', $packId)
@@ -195,5 +195,29 @@ class DbPackRepo implements PackRepo {
 				->first();
 
 		return $pack;
+	}
+
+	public function getPacksByUserId($userId, $featureId)
+	{
+		$pack = $this->db->table(Config::get('throttle::tables.user_packs').' as up')
+				->join(Config::get('throttle::tables.subscriptions').' as s', 's.id', '=', 'up.subscription_id')
+				->join(Config::get('throttle::tables.packs').' as p', 'p.id', '=', 'up.pack_id')
+				->where('p.feature_id', $featureId)
+				->where('up.status', '1')
+				->where('s.user_id', $userId)
+				->select('up.pack_id', 'up.price', 'up.units', 'up.quantity_per_unit')
+				->get();
+
+		return $pack;
+	}
+
+	public function findLimitOfUserByPackId($subscriptionId, $packId)
+	{
+		return $this->db->table(Config::get('throttle::tables.user_feature_limit').' as ufl')
+			->join(Config::get('throttle::tables.packs').' as p', 'p.feature_id', '=', 'ufl.feature_id')
+			->where('ufl.subscription_id', $subscriptionId)
+			->where('p.id', $packId)
+			->select('ufl.limit')	
+			->first();
 	}
 }
