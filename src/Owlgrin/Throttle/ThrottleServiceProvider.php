@@ -18,7 +18,7 @@ class ThrottleServiceProvider extends ServiceProvider {
 	 */
 	public function boot()
 	{
-		$this->package('sahil/throttle');
+		$this->package('owlgrin/throttle');
 	}
 
 	/**
