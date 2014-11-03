@@ -118,7 +118,10 @@ class PayAsYouGoBiller implements Biller{
 			}
 		}
 
-		$bill = isset($packs['amount']) ? $bill + $packs['amount'] : $bill;
+		foreach($packs as $key => $pack) 
+		{
+			$bill = isset($pack['amount']) ? $bill + $pack['amount'] : $bill;			
+		}
 
 		return ['tiers' => $lineItem, 'feature_id' => $featureId, 'feature_name' => $feature['name'], 'amount' => $bill, 'packs' => $packs];
 	}

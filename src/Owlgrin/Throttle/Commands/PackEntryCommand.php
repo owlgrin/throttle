@@ -41,7 +41,7 @@ class PackEntryCommand extends Command {
 	public function fire()
 	{
 		$pack = $this->argument('pack');
-
+		
 		$this->pack->store(json_decode($pack, true)['pack']);
 	}
 	
