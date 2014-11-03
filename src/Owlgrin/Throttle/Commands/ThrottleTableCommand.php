@@ -71,5 +71,4 @@ class ThrottleTableCommand extends Command {
 		return str_replace('packs', Config::get('throttle::tables.packs'), $stub);
 		return str_replace('user_packs', Config::get('throttle::tables.user_packs'), $stub);
 	}
-
 }
