@@ -104,7 +104,12 @@ class Throttle {
 
 		if($limit === false)
 		{
-	        $limit = $this->subscriber->left($this->subscription['subscriptionId'], $identifier) - $this->usages[$identifier];
+	 		$limit = $limit = $this->subscriber->left($this->subscription['subscriptionId'], $identifier);
+
+			if(! is_null($limit)) 
+			{
+				$limit = $limit - $this->usages[$identifier];
+			}
 			
 			$this->redis->hashSet("throttle:hashes:limit:{$identifier}", $this->user, $limit);
 		}
