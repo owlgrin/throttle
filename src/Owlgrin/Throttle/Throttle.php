@@ -113,7 +113,7 @@ class Throttle {
 			
 			$this->redis->hashSet("throttle:hashes:limit:{$identifier}", $this->user, $limit);
 		}
-		
+	
 		if($limit === "" or is_null($limit)) 
 		{
 			return true;
