@@ -215,7 +215,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 				$join->on('ufu.subscription_id', '=', 'ufl.subscription_id');
 				$join->on('ufu.feature_id', '=', 'ufl.feature_id');
 			})
-			->join('features as f', function($join)
+			->join(Config::get('throttle::tables.features').' as f', function($join)
 			{
 				$join->on('f.id', '=', 'ufu.feature_id');
 			})
