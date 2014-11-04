@@ -215,7 +215,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 				$join->on('ufu.subscription_id', '=', 'ufl.subscription_id');
 				$join->on('ufu.feature_id', '=', 'ufl.feature_id');
 			})
-			->join('features as f', function($join)
+			->join(Config::get('throttle::tables.features').' as f', function($join)
 			{
 				$join->on('f.id', '=', 'ufu.feature_id');
 			})
@@ -272,7 +272,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 		$this->db->table(Config::get('throttle::tables.user_feature_usage'))->insert(
 		[
 			'subscription_id' 	=> $subscriptionId,
-			'feature_id'    	=> $this->db->raw("(select id from features where identifier = '$identifier')"),
+			'feature_id'    	=> $this->db->raw("(select id from ". Config::get('throttle::tables.features') ." where identifier = '$identifier')"),
 			'used_quantity' 	=> $usedQuantity,
 			'date'    			=> $this->db->raw('now()')
 		]);
@@ -287,7 +287,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 				$join->on('ufu.subscription_id', '=', 'ufl.subscription_id');
 				$join->on('ufu.feature_id', '=', 'ufl.feature_id');
 			})
-			->join('features as f', function($join)
+			->join(Config::get('throttle::tables.features').' as f', function($join)
 			{
 				$join->on('f.id', '=', 'ufu.feature_id');
 			})
