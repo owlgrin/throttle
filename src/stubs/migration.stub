@@ -69,7 +69,7 @@ class CreateThrottleTable extends Migration {
 			$table->integer('quantity');
 		});
 
-		Schema::create('user_packs', function(Blueprint $table)
+		Schema::create('user_pack', function(Blueprint $table)
 		{
 			$table->increments('id');
 			$table->integer('subscription_id');
@@ -95,6 +95,6 @@ class CreateThrottleTable extends Migration {
 		Schema::drop('user_feature_usage');
 		Schema::drop('user_feature_limit');
 		Schema::drop('packs');
-		Schema::drop('user_packs');
+		Schema::drop('user_pack');
 	}
 }
