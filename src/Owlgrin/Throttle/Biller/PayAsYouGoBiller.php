@@ -51,6 +51,7 @@ class PayAsYouGoBiller implements Biller{
 			$lineItem = $this->calculateByTier($tiers, $feature['feature_id'], $feature['used_quantity'], $userId);
 		
 			$amount += $lineItem['amount'];
+			$lineItem['usage'] = $feature['used_quantity'];
 			$lines[] = $lineItem;
 		}
 
