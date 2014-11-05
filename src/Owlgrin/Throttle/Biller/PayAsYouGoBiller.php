@@ -42,6 +42,7 @@ class PayAsYouGoBiller implements Biller{
 	public function calculateByUsage($usages, $userId = null)
 	{
 		$amount = 0;
+		$lines = [];
 
 		foreach($usages as $index => $feature)
 		{
