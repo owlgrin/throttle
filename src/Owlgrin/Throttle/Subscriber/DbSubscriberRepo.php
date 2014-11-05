@@ -160,6 +160,15 @@ class DbSubscriberRepo implements SubscriberRepo {
 			->update(['limit' => $limit]);
 	}
 
+	//manually increment limit of a subscription
+	public function incrementLimit($subscriptionId, $featureId, $value)
+	{
+		$this->db->table(Config::get('throttle::tables.user_feature_limit'))
+			->where('subscription_id', $subscriptionId)
+			->where('feature_id', $featureId)
+			->increment('limit', $value);
+	}
+
 	//returns usage of the user
 	public function getUsage($userId, $startDate, $endDate)
 	{
@@ -206,7 +215,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 				$join->on('ufu.subscription_id', '=', 'ufl.subscription_id');
 				$join->on('ufu.feature_id', '=', 'ufl.feature_id');
 			})
-			->join('features as f', function($join)
+			->join(Config::get('throttle::tables.features').' as f', function($join)
 			{
 				$join->on('f.id', '=', 'ufu.feature_id');
 			})
@@ -263,7 +272,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 		$this->db->table(Config::get('throttle::tables.user_feature_usage'))->insert(
 		[
 			'subscription_id' 	=> $subscriptionId,
-			'feature_id'    	=> $this->db->raw("(select id from features where identifier = '$identifier')"),
+			'feature_id'    	=> $this->db->raw("(select id from ". Config::get('throttle::tables.features') ." where identifier = '$identifier')"),
 			'used_quantity' 	=> $usedQuantity,
 			'date'    			=> $this->db->raw('now()')
 		]);
@@ -278,7 +287,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 				$join->on('ufu.subscription_id', '=', 'ufl.subscription_id');
 				$join->on('ufu.feature_id', '=', 'ufl.feature_id');
 			})
-			->join('features as f', function($join)
+			->join(Config::get('throttle::tables.features').' as f', function($join)
 			{
 				$join->on('f.id', '=', 'ufu.feature_id');
 			})
@@ -293,5 +302,17 @@ class DbSubscriberRepo implements SubscriberRepo {
 		}
 
 		return null;
+	}
+
+	public function canReduceLimit($subscriptionId, $featureId, $limit)
+	{
+		$feature = $this->db->select("SELECT * FROM ".Config::get('throttle::tables.user_feature_limit')." WHERE `subscription_id` = ".$subscriptionId." AND feature_id = ".$subscriptionId." AND `limit` >= ((SELECT `used_quantity` FROM ".Config::get('throttle::tables.user_feature_usage')." WHERE `subscription_id` = ".$subscriptionId." AND `feature_id` = ".$featureId.") + ".$limit.")");
+	
+		if($feature)
+		{
+			return true;
+		}
+
+		return false;
 	}
 }

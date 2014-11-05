@@ -46,7 +46,7 @@ class ThrottleServiceProvider extends ServiceProvider {
 	{
 		$this->app->bindShared('command.throttle.table', function($app)
 		{
-			return new \Owlgrin\Throttle\Commands\ThrottleTableCommand;
+			return $app->make('Owlgrin\Throttle\Commands\ThrottleTableCommand');
 		});
 
 		$this->app->bindShared('command.user.subscribe', function($app)
@@ -59,17 +59,35 @@ class ThrottleServiceProvider extends ServiceProvider {
 			return $app->make('Owlgrin\Throttle\Commands\PlanEntryCommand');
 		});
 
+		$this->app->bindShared('command.pack.entry', function($app)
+		{
+			return $app->make('Owlgrin\Throttle\Commands\PackEntryCommand');
+		});
+
+		$this->app->bindShared('command.add.user.pack', function($app)
+		{
+			return $app->make('Owlgrin\Throttle\Commands\AddPackForUserCommand');
+		});
+
+		$this->app->bindShared('command.remove.user.pack', function($app)
+		{
+			return $app->make('Owlgrin\Throttle\Commands\RemovePackForUserCommand');
+		});
 
 		$this->commands('command.throttle.table');
 		$this->commands('command.user.subscribe');
 		$this->commands('command.plan.entry');
+		$this->commands('command.pack.entry');
+		$this->commands('command.add.user.pack');
+		$this->commands('command.remove.user.pack');
 	}
 
 	protected function registerRepositories()
-	{
+	{		
 		$this->app->bind('Owlgrin\Throttle\Biller\Biller', 'Owlgrin\Throttle\Biller\PayAsYouGoBiller');
 		$this->app->bind('Owlgrin\Throttle\Subscriber\SubscriberRepo', 'Owlgrin\Throttle\Subscriber\DbSubscriberRepo');
 		$this->app->bind('Owlgrin\Throttle\Plan\PlanRepo', 'Owlgrin\Throttle\Plan\DbPlanRepo');
+		$this->app->bind('Owlgrin\Throttle\Pack\PackRepo', 'Owlgrin\Throttle\Pack\DbPackRepo');
 
 		$this->app->singleton('throttle', 'Owlgrin\Throttle\Throttle');
 	}

@@ -2,14 +2,17 @@
 
 use Owlgrin\Throttle\Biller\Biller;
 use Owlgrin\Throttle\Subscriber\SubscriberRepo;
+use Owlgrin\Throttle\Pack\PackRepo as Pack;
 
 class PayAsYouGoBiller implements Biller{
 
 	protected $subscription;
+	protected $pack;
 
-	public function __construct(SubscriberRepo $subscription)
+	public function __construct(SubscriberRepo $subscription, Pack $pack)
 	{
 		$this->subscription = $subscription;
+		$this->pack = $pack;
 	}
 
 	public function estimate($usages)
@@ -21,19 +24,31 @@ class PayAsYouGoBiller implements Biller{
 	{
 		$usages = $this->subscription->getUsage($userId, $startDate, $endDate);
 
-		return $this->calculateByUsage($usages);
+		return $this->calculateByUsage($usages, $userId);
 	}
 
-	public function calculateByUsage($usages)
+	public function calculateByPacks($packs)
+	{
+		$allPacks = [];
+
+		foreach($packs as $index => $pack) 
+		{
+			$allPacks[] = array_merge($pack, ['amount' => $pack['price']*$pack['units']]);
+		}
+
+		return $allPacks;
+	}
+
+	public function calculateByUsage($usages, $userId = null)
 	{
 		$amount = 0;
 		$lines = [];
-		
-		foreach($usages as $index => $feature) 
+
+		foreach($usages as $index => $feature)
 		{
 			$tiers = $this->getTierByFeature($feature['plan_id'], $feature['feature_id']);
 			
-			$lineItem = $this->calculateByTier($tiers, $feature['feature_id'], $feature['used_quantity']);
+			$lineItem = $this->calculateByTier($tiers, $feature['feature_id'], $feature['used_quantity'], $userId);
 		
 			$amount += $lineItem['amount'];
 			$lines[] = $lineItem;
@@ -48,10 +63,20 @@ class PayAsYouGoBiller implements Biller{
 		return $this->subscription->featureLimit($planId, $featureId);
 	}
 
-	private function calculateByTier($tiers, $featureId, $usage)
+	private function calculateByTier($tiers, $featureId, $usage, $userId = null)
 	{
 		$bill = 0;
 		$lineItem = [];
+
+		if(! is_null($userId))
+		{
+			$packs = $this->pack->getPacksByUserId($userId, $featureId);	
+		}
+
+		if($packs)
+		{
+			$packs = $this->calculateByPacks($packs);
+		}
 
 		foreach($tiers as $index => $feature) 
 		{
@@ -94,6 +119,11 @@ class PayAsYouGoBiller implements Biller{
 			}
 		}
 
-		return ['tiers' => $lineItem, 'feature_id' => $featureId, 'feature_name' => $feature['name'], 'amount' => $bill];
+		foreach($packs as $key => $pack) 
+		{
+			$bill = isset($pack['amount']) ? $bill + $pack['amount'] : $bill;			
+		}
+
+		return ['tiers' => $lineItem, 'feature_id' => $featureId, 'feature_name' => $feature['name'], 'amount' => $bill, 'packs' => $packs];
 	}
 }
