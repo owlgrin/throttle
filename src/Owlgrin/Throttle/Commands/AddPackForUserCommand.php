@@ -16,7 +16,7 @@ class AddPackForUserCommand extends Command {
 	 *
 	 * @var string
 	 */
-	protected $name = 'add:user:pack';
+	protected $name = 'throttle:add:user:pack';
 
 	/**
 	 * The console command description.
