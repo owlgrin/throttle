@@ -68,6 +68,7 @@ class PayAsYouGoBiller implements Biller{
 	{
 		$bill = 0;
 		$lineItem = [];
+		$packs = [];
 
 		if(! is_null($userId))
 		{

@@ -49,9 +49,7 @@ class DbPackRepo implements PackRepo {
 			$this->db->table(Config::get('throttle::tables.user_pack'))->insert([
 				'subscription_id'      => $subscriptionId,
 				'pack_id'  	  	       => $packId,
-				'price'                => $pack['price'],
 				'units'                => $units,
-				'quantity_per_unit'    => $pack['quantity'],
 				'status'               => 1
 			]);
 
@@ -205,7 +203,7 @@ class DbPackRepo implements PackRepo {
 				->where('p.feature_id', $featureId)
 				->where('up.status', '1')
 				->where('s.user_id', $userId)
-				->select('up.pack_id', 'up.price', 'up.units', 'up.quantity_per_unit')
+				->select('up.pack_id', 's.price', 'up.units', 's.quantity')
 				->get();
 
 		return $pack;
