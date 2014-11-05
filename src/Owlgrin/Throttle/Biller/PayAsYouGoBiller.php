@@ -27,7 +27,8 @@ class PayAsYouGoBiller implements Biller{
 	public function calculateByUsage($usages)
 	{
 		$amount = 0;
-
+		$lines = [];
+		
 		foreach($usages as $index => $feature) 
 		{
 			$tiers = $this->getTierByFeature($feature['plan_id'], $feature['feature_id']);

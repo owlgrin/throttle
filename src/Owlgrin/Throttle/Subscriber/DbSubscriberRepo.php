@@ -165,7 +165,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 	{
 		//if end date is then then end date id today
 		$endDate = is_null($endDate) ? Carbon::today()->toDateTimeString(): $endDate;
-
+		
 		return $this->db->table(Config::get('throttle::tables.user_feature_usage').' as u')
 			->join(Config::get('throttle::tables.subscriptions').' as s','s.id', '=', 'u.subscription_id')
 			->where('u.date', '>=', $startDate)
