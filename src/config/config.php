@@ -17,6 +17,7 @@ return array(
 		),
 
 	),
+
 	'tables' => array(
 		/**
 		 * This table is required to keep track of the
