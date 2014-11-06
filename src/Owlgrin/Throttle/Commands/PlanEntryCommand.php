@@ -43,6 +43,8 @@ class PlanEntryCommand extends Command {
 		$plan = $this->argument('plan');
 
 		$this->plan->add(json_decode($plan, true));
+
+		$this->info('Plan Added Successfully');
 	}
 	protected function getArguments()
 	{

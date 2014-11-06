@@ -74,12 +74,18 @@ class ThrottleServiceProvider extends ServiceProvider {
 			return $app->make('Owlgrin\Throttle\Commands\RemovePackForUserCommand');
 		});
 
+		$this->app->bindShared('command.user.bill', function($app)
+		{
+			return $app->make('Owlgrin\Throttle\Commands\UserBillCommand');
+		});
+
 		$this->commands('command.throttle.table');
 		$this->commands('command.user.subscribe');
 		$this->commands('command.plan.entry');
 		$this->commands('command.pack.entry');
 		$this->commands('command.add.user.pack');
 		$this->commands('command.remove.user.pack');
+		$this->commands('command.user.bill');
 	}
 
 	protected function registerRepositories()

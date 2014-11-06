@@ -103,4 +103,18 @@ class DbPlanRepo implements PlanRepo {
 
 		return $features;
 	}
+
+	public function getPlanByIdentifier($identifier)
+	{
+		try
+		{
+			return $this->db->table(Config::get('throttle::tables.plans'))
+				->where('identifier', $identifier)
+				->first();
+		}
+		catch(Exception $e)
+		{
+			throw new Exceptions\InvalidInputException;
+		}
+	}
 }
