@@ -51,7 +51,7 @@ class PayAsYouGoBiller implements Biller{
 			$lineItem = $this->calculateByTier($tiers, $feature['feature_id'], $feature['used_quantity'], $userId);
 		
 			$amount += $lineItem['amount'];
-			$lineItem['usage'] = $feature['used_quantity'];
+			$lineItem['usage'] = (int) $feature['used_quantity'];
 			$lines[] = $lineItem;
 		}
 
@@ -88,9 +88,9 @@ class PayAsYouGoBiller implements Biller{
 			{
 				if((int) $feature['limit'] == null)
 				{
-					$lineItems['limit'] = $feature['limit'];	
-					$lineItems['usage'] = $usage;
-					$lineItems['rate'] = $feature['rate'];
+					$lineItems['limit'] = (int) $feature['limit'];	
+					$lineItems['usage'] = (int) $usage;
+					$lineItems['rate'] = (int) $feature['rate'];
 					$lineItems['amount'] = $feature['rate']*($feature['limit']/$feature['per_quantity']);
 					$lineItem[] = $lineItems;
 
@@ -99,9 +99,9 @@ class PayAsYouGoBiller implements Biller{
 				}
 				else
 				{
-					$lineItems['limit'] = $feature['limit'];
-					$lineItems['usage'] = $feature['limit'];
-					$lineItems['rate'] = $feature['rate'];
+					$lineItems['limit'] = (int) $feature['limit'];
+					$lineItems['usage'] = (int) $feature['limit'];
+					$lineItems['rate'] = (int) $feature['rate'];
 					$lineItems['amount'] = $feature['rate']*($feature['limit']/$feature['per_quantity']);
 					$lineItem[] = $lineItems;
 				
@@ -111,9 +111,9 @@ class PayAsYouGoBiller implements Biller{
 			}
 			else
 			{			
-				$lineItems['limit'] = $feature['limit'];
-				$lineItems['usage'] = $usage;
-				$lineItems['rate'] = $feature['rate'];
+				$lineItems['limit'] = (int) $feature['limit'];
+				$lineItems['usage'] = (int) $usage;
+				$lineItems['rate'] = (int) $feature['rate'];
 				$lineItems['amount'] = $feature['rate']*($usage/$feature['per_quantity']);
 				$lineItem[] = $lineItems;
 				$bill += $lineItems['amount'];

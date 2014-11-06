@@ -203,7 +203,7 @@ class DbPackRepo implements PackRepo {
 				->where('p.feature_id', $featureId)
 				->where('up.status', '1')
 				->where('s.user_id', $userId)
-				->select('p.pack_id', 'p.price', 'up.units', 'p.quantity')
+				->select('p.id', 'p.price', 'up.units', 'p.quantity')
 				->get();
 
 		return $pack;
