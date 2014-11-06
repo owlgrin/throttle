@@ -40,7 +40,7 @@ class CreateThrottleTable extends Migration {
 			$table->increments('id');
 			$table->string('user_id');
 			$table->integer('plan_id');
-			$table->tinyInteger('status');
+			$table->tinyInteger('is_active');
 			$table->timestamp('subscribed_at')->nullable();
 		});
 		Schema::create('user_feature_usage', function(Blueprint $table)
