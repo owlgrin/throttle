@@ -186,7 +186,7 @@ class Throttle {
 		
 		foreach($usages as $entity => $value) 
 		{
-			if($value > 0)
+			if($value > 0 or $value < 0)
 			{
 				$this->increment($entity, $value);			
 			}
