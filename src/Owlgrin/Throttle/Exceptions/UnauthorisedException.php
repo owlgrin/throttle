@@ -5,7 +5,7 @@ class UnauthorizedException extends Exception {
 	/**
 	 * Message
 	 */
-	const MESSAGE = 'throttle::responses.message.unauthorized';
+	const MESSAGE = 'Throttle::responses.message.unauthorized';
 
 	/**
 	 * Code

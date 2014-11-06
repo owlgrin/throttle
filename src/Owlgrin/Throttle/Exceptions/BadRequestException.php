@@ -5,7 +5,7 @@ class BadRequestException extends Exception {
 	/**
 	 * Message
 	 */
-	const MESSAGE = 'throttle::responses.message.bad_request';
+	const MESSAGE = 'Throttle::responses.message.bad_request';
 
 	/**
 	 * Code

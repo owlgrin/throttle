@@ -64,7 +64,6 @@ class Throttle {
 		$this->usages[$identifier] += $count;
 	}
 
-
 	//this function sets used count
 	public function setUsedCount($identifier, $value = 0)
 	{
@@ -99,7 +98,7 @@ class Throttle {
 	}
 
 	public function can($identifier, $count = 1, $reduce = true)
-	{		
+	{
 		$limit = $this->redis->hashGet("throttle:hashes:limit:{$identifier}", $this->user);
 
 		if($limit === false)

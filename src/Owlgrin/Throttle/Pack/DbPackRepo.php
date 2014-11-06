@@ -46,12 +46,10 @@ class DbPackRepo implements PackRepo {
 
 			$pack = $this->find($packId);
 
-			$this->db->table(Config::get('throttle::tables.user_packs'))->insert([
+			$this->db->table(Config::get('throttle::tables.user_pack'))->insert([
 				'subscription_id'      => $subscriptionId,
 				'pack_id'  	  	       => $packId,
-				'price'                => $pack['price'],
 				'units'                => $units,
-				'quantity_per_unit'    => $pack['quantity'],
 				'status'               => 1
 			]);
 
@@ -113,7 +111,7 @@ class DbPackRepo implements PackRepo {
 
 			$pack = $this->find($packId);
 
-			$this->db->table(Config::get('throttle::tables.user_packs'))
+			$this->db->table(Config::get('throttle::tables.user_pack'))
 				->where('pack_id', $packId)
 				->where('subscription_id', $subscriptionId)
 				->where('status', '1')
@@ -151,14 +149,14 @@ class DbPackRepo implements PackRepo {
 
 			if($userPack['units'] == $units)
 			{
-				$this->db->table(Config::get('throttle::tables.user_packs'))
+				$this->db->table(Config::get('throttle::tables.user_pack'))
 					->where('id', $packId)
 					->where('subscription_id', $subscriptionId)
 					->update(['status' => 0]);
 			}
 			else
 			{
-				$this->db->table(Config::get('throttle::tables.user_packs'))
+				$this->db->table(Config::get('throttle::tables.user_pack'))
 					->where('id', $packId)
 					->where('subscription_id', $subscriptionId)
 					->decrement('units', $units);
@@ -174,7 +172,7 @@ class DbPackRepo implements PackRepo {
 
 	private function isPackExistsForUser($subscriptionId, $packId, $units)
 	{
-		$pack = $this->db->table(Config::get('throttle::tables.user_packs'))
+		$pack = $this->db->table(Config::get('throttle::tables.user_pack'))
 				->where('pack_id', $packId)
 				->where('subscription_id', $subscriptionId)
 				->where('units', '>=', $units)
@@ -188,7 +186,7 @@ class DbPackRepo implements PackRepo {
 
 	public function getPackBySubscriptionId($subscriptionId, $packId)
 	{
-		$pack = $this->db->table(Config::get('throttle::tables.user_packs'))
+		$pack = $this->db->table(Config::get('throttle::tables.user_pack'))
 				->where('pack_id', $packId)
 				->where('subscription_id', $subscriptionId)
 				->where('status', '1')
@@ -199,13 +197,13 @@ class DbPackRepo implements PackRepo {
 
 	public function getPacksByUserId($userId, $featureId)
 	{
-		$pack = $this->db->table(Config::get('throttle::tables.user_packs').' as up')
+		$pack = $this->db->table(Config::get('throttle::tables.user_pack').' as up')
 				->join(Config::get('throttle::tables.subscriptions').' as s', 's.id', '=', 'up.subscription_id')
 				->join(Config::get('throttle::tables.packs').' as p', 'p.id', '=', 'up.pack_id')
 				->where('p.feature_id', $featureId)
 				->where('up.status', '1')
 				->where('s.user_id', $userId)
-				->select('up.pack_id', 'up.price', 'up.units', 'up.quantity_per_unit')
+				->select('up.pack_id', 's.price', 'up.units', 's.quantity')
 				->get();
 
 		return $pack;

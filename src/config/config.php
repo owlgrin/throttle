@@ -17,6 +17,7 @@ return array(
 		),
 
 	),
+
 	'tables' => array(
 		/**
 		 * This table is required to keep track of the
@@ -57,6 +58,6 @@ return array(
 		 * This table stores packs used by the user
 		 * with units
 		 */
-		'user_packs' => 'user_packs'
+		'user_pack' => 'user_pack'
 	),
 );

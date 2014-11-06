@@ -16,7 +16,7 @@ class RemovePackForUserCommand extends Command {
 	 *
 	 * @var string
 	 */
-	protected $name = 'remove:user:pack';
+	protected $name = 'throttle:remove:user:pack';
 
 	/**
 	 * The console command description.

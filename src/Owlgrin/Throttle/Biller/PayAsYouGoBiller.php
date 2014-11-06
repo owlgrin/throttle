@@ -42,6 +42,7 @@ class PayAsYouGoBiller implements Biller{
 	public function calculateByUsage($usages, $userId = null)
 	{
 		$amount = 0;
+		$lines = [];
 
 		foreach($usages as $index => $feature)
 		{
@@ -50,6 +51,7 @@ class PayAsYouGoBiller implements Biller{
 			$lineItem = $this->calculateByTier($tiers, $feature['feature_id'], $feature['used_quantity'], $userId);
 		
 			$amount += $lineItem['amount'];
+			$lineItem['usage'] = $feature['used_quantity'];
 			$lines[] = $lineItem;
 		}
 
@@ -66,6 +68,7 @@ class PayAsYouGoBiller implements Biller{
 	{
 		$bill = 0;
 		$lineItem = [];
+		$packs = [];
 
 		if(! is_null($userId))
 		{

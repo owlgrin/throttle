@@ -23,13 +23,18 @@ class DbSubscriberRepo implements SubscriberRepo {
 			//starting a transition
 			$this->db->beginTransaction();
 
+			//unsubscribing to previous plan.
+			$this->db->table(Config::get('throttle::tables.subscriptions'))
+				->where('user_id', $userId)
+				->where('is_active', '1')
+				->update(['is_active' => '0']);
+
 			//user is subscribed in subscriptions and id is returned
 			$subscriptionId = $this->db->table(Config::get('throttle::tables.subscriptions'))->insertGetId([
 					'user_id' 		=> $userId,
 					'plan_id' 		=> $planId,
+					'is_active'		=> '1',
 					'subscribed_at' => $this->db->raw('now()'),
-					'created_at' 	=> $this->db->raw('now()'),
-					'updated_at' 	=> $this->db->raw('now()')
 			]);
 
 			if($subscriptionId)
@@ -200,6 +205,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 	{
 		$user = $this->db->table(Config::get('throttle::tables.subscriptions'))
 			->where('user_id', $userId)
+			->where('is_active', '1')
 			->select('id AS subscriptionId', 'plan_id AS planId')
 			->first();
 
