@@ -92,9 +92,9 @@ class Throttle {
 	}
 
 	//subscribes a user to a specific plan
-	public function subscribe($planId)
+	public function subscribe($planIdentifier)
 	{
-		return $this->subscriber->subscribe($this->user, $planId);
+		return $this->subscriber->subscribe($this->user, $planIdentifier);
 	}
 
 	public function can($identifier, $count = 1, $reduce = true)
