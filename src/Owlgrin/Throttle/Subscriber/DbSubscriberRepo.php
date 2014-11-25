@@ -4,39 +4,50 @@ use Carbon\Carbon;
 
 use Illuminate\Database\DatabaseManager as Database;
 use Owlgrin\Throttle\Subscriber\SubscriberRepo;
+use Owlgrin\Throttle\Plan\PlanRepo;
 use Owlgrin\Throttle\Exceptions;
 use Exception, Config;
 
 class DbSubscriberRepo implements SubscriberRepo {
 
 	protected $db;
+	protected $planRepo;
 
-	public function __construct(Database $db)
+	public function __construct(Database $db, PlanRepo $planRepo)
 	{
 		$this->db = $db;
+		$this->planRepo = $planRepo;
 	}
 
-	public function subscribe($userId, $planId)
+	public function subscribe($userId, $planIdentifier)
 	{	
 		try
 		{
 			//starting a transition
 			$this->db->beginTransaction();
 
+			//unsubscribing to previous plan.
+			$this->db->table(Config::get('throttle::tables.subscriptions'))
+				->where('user_id', $userId)
+				->where('is_active', '1')
+				->update(['is_active' => '0']);
+
+			//getting previous plan
+			$plan = $this->planRepo->getPlanByIdentifier($planIdentifier);
+
 			//user is subscribed in subscriptions and id is returned
 			$subscriptionId = $this->db->table(Config::get('throttle::tables.subscriptions'))->insertGetId([
 					'user_id' 		=> $userId,
-					'plan_id' 		=> $planId,
+					'plan_id' 		=> $plan['id'],
+					'is_active'		=> '1',
 					'subscribed_at' => $this->db->raw('now()'),
-					'created_at' 	=> $this->db->raw('now()'),
-					'updated_at' 	=> $this->db->raw('now()')
 			]);
 
 			if($subscriptionId)
 			{
 				//find limit of the features
-				$this->addInitialUsageForFeatures($subscriptionId, $planId);
-				$this->addInitialLimitForFeatures($subscriptionId, $planId);
+				$this->addInitialUsageForFeatures($subscriptionId, $plan['id']);
+				$this->addInitialLimitForFeatures($subscriptionId, $plan['id']);
 			}
 
 			//commition the work after processing
@@ -46,7 +57,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 		{
 			//rollback if failed
 			$this->db->rollback();
-
+			dd($e->getMessage());
 			throw new Exceptions\InvalidInputException;
 		}
 
@@ -200,6 +211,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 	{
 		$user = $this->db->table(Config::get('throttle::tables.subscriptions'))
 			->where('user_id', $userId)
+			->where('is_active', '1')
 			->select('id AS subscriptionId', 'plan_id AS planId')
 			->first();
 

@@ -6,16 +6,9 @@ return array(
 	 * the the storage. We use this SQL tables to record certain 
 	 * information about the plans
 	 */
+
 	'redis' => array(
-
-		'cluster' => false,
-
-		'default' => array(
-			'host'     => '127.0.0.1',
-			'port'     => 6379,
-			'database' => 0,
-		),
-
+		'connections' => 'default',
 	),
 
 	'tables' => array(
