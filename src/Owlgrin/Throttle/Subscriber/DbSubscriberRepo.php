@@ -191,7 +191,8 @@ class DbSubscriberRepo implements SubscriberRepo {
 			->where('u.date', '>=', $startDate)
 			->where('u.date', '<=', $endDate)
 			->where('s.user_id', '=', $userId)
-			->select('plan_id', 'feature_id', 'used_quantity', 'date')
+			->select(\DB::raw('plan_id, feature_id, SUM(used_quantity) as used_quantity'))
+			->groupBy('feature_id')
 			->get();
 	}
 
@@ -326,5 +327,37 @@ class DbSubscriberRepo implements SubscriberRepo {
 		}
 
 		return false;
+	}
+
+	public function getUserFeaturesLimit($subscriptionId)
+	{
+		return $this->db->table(Config::get('throttle::tables.user_feature_limit') .' as ufl')
+			->join(Config::get('throttle::tables.features'). ' as f', 'ufl.feature_id', '=', 'f.id')
+			->where('subscription_id', $subscriptionId)
+			->select('f.id as feature_id', 'f.name as feature_name', 'ufl.limit as feature_limit')
+			->get();
+	}
+
+	public function getUserUsage($userId, $subscriptionId, $startDate, $endDate)
+	{
+		$usages = $this->getUsage($userId, $startDate, $endDate);
+
+		$limits  = $this->getUserFeaturesLimit($subscriptionId);
+
+		$userUsage = [];
+		foreach($limits as $index => $limit) 
+		{
+			foreach($usages as $key => $usage) 
+			{
+				if($usage['feature_id'] === $limit['feature_id'])
+				{
+					$usage['feature_name'] = $limit['feature_name'];
+					$usage['feature_limit'] = $limit['feature_limit'];
+					array_push($userUsage, $usage);
+				}
+			}
+		}
+
+		return $userUsage;
 	}
 }
