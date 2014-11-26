@@ -9,7 +9,7 @@ class RedisStorage {
 
 	public function __construct(Redis $redis)
 	{
-		$config = Config::get('database.redis.'.Config::get('throttle::redis.connections'));
+		$config = Config::get('database.redis.'.Config::get('throttle::redis.connection'));
 		$this->redis = $redis;
 		
 		try
