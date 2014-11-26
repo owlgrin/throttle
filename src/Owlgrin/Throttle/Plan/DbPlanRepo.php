@@ -117,4 +117,16 @@ class DbPlanRepo implements PlanRepo {
 			throw new Exceptions\InvalidInputException;
 		}
 	}
+
+	public function getAllPlans()
+	{
+		return $this->db->table(Config::get('throttle::tables.plans'))
+				->get();
+	}
+
+	public function getAllFeatures()
+	{
+		return $this->db->table(Config::get('throttle::tables.features'))
+			->get();
+	}
 }
