@@ -213,7 +213,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 		$user = $this->db->table(Config::get('throttle::tables.subscriptions'))
 			->where('user_id', $userId)
 			->where('is_active', '1')
-			->select('id AS subscriptionId', 'plan_id AS planId')
+			->select('id AS subscriptionId', 'plan_id AS planId', 'subscribed_at AS subscribedAt')
 			->first();
 
 		return $user;
