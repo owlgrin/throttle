@@ -97,6 +97,11 @@ class Throttle {
 		return $this->subscriber->subscribe($this->user, $planIdentifier);
 	}
 
+	public function usage($startDate, $endDate)
+	{
+		return $this->subscriber->getUserUsage($this->user, $this->subscription['subscriptionId'], $startDate, $endDate);
+	}
+
 	public function can($identifier, $count = 1, $reduce = true)
 	{
 		$limit = $this->redis->hashGet("throttle:hashes:limit:{$identifier}", $this->user);

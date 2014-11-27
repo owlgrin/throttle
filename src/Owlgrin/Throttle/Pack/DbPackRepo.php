@@ -218,4 +218,12 @@ class DbPackRepo implements PackRepo {
 			->select('ufl.limit')	
 			->first();
 	}
+
+	public function getAllPacks()
+	{
+		$packs = $this->db->table(Config::get('throttle::tables.packs'))
+			->get();
+
+		return $packs;
+	}
 }

@@ -65,6 +65,7 @@ class CreateThrottleTable extends Migration {
 			$table->string('name', 255);
 			$table->integer('plan_id');
 			$table->integer('feature_id');
+			$table->enum('type', ['private', 'public']);
 			$table->integer('price');
 			$table->integer('quantity');
 		});
