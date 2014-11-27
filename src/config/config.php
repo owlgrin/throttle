@@ -8,7 +8,7 @@ return array(
 	 */
 
 	'redis' => array(
-		'connections' => 'default',
+		'connection' => 'default',
 	),
 
 	'tables' => array(
