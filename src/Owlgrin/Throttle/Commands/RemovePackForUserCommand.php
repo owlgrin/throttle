@@ -44,8 +44,8 @@ class RemovePackForUserCommand extends Command {
 		$subscriptionId = $this->option('subscription_id');
 		$units = $this->option('units');
 
-		$this->pack->removePacksForUser($packId, $subscriptionId, $units);
-		$this->info('User With subscription id '.$subscriptionId.' has been added to pack with id '.$packId. 'with units - '.$units);
+		$this->pack->removePacksForUser($packId, $subscriptionId, $units, new \Owlgrin\Throttle\Period\ThrottlePeriod);
+		$this->info('User With subscription id '.$subscriptionId.' has been removed to pack with id '.$packId. 'with units - '.$units);
 	}
 	
 	protected function getOptions()

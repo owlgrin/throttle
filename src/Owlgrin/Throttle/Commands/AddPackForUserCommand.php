@@ -48,7 +48,7 @@ class AddPackForUserCommand extends Command {
 
 		if(! is_null($limit))
 		{
-			$this->pack->addPackForUser($packId, $subscriptionId, $units);
+			$this->pack->addPackForUser($packId, $subscriptionId, $units, new \Owlgrin\Throttle\Period\ThrottlePeriod);
 			$this->info('User With subscription id '.$subscriptionId.' has been added to pack with id '.$packId. 'with units - '.$units);			
 		}
 	}

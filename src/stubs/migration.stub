@@ -77,6 +77,8 @@ class CreateThrottleTable extends Migration {
 			$table->integer('pack_id');
 			$table->integer('units');
 			$table->tinyInteger('status');
+			$table->date('period_start');
+			$table->date('period_end');
 		});
 	}
 

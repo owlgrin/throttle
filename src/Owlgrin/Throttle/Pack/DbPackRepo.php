@@ -4,6 +4,8 @@ use Illuminate\Database\DatabaseManager as Database;
 use Owlgrin\Throttle\Pack\PackRepo;
 use Owlgrin\Throttle\Subscriber\SubscriberRepo as Subscriber;
 use Owlgrin\Throttle\Exceptions;
+use Owlgrin\Throttle\Period\PeriodInterface;
+
 use Exception, Config;
 
 class DbPackRepo implements PackRepo {
@@ -37,7 +39,7 @@ class DbPackRepo implements PackRepo {
 		}
 	}
 
-	public function addPackForUser($packId, $subscriptionId, $units)
+	public function addPackForUser($packId, $subscriptionId, $units, PeriodInterface $period)
 	{
 		try
 		{
@@ -46,13 +48,20 @@ class DbPackRepo implements PackRepo {
 
 			$pack = $this->find($packId);
 
-			$this->db->table(Config::get('throttle::tables.user_pack'))->insert([
-				'subscription_id'      => $subscriptionId,
-				'pack_id'  	  	       => $packId,
-				'units'                => $units,
-				'status'               => 1
-			]);
+			$packForUser = $this->updatePackForUser($subscriptionId, $packId, $units, $period->start(), $period->end());
 
+			if(! $packForUser)
+			{
+				$this->db->table(Config::get('throttle::tables.user_pack'))->insert([
+					'subscription_id'      => $subscriptionId,
+					'pack_id'  	  	       => $packId,
+					'units'                => $units,
+					'status'               => 1,
+					'period_start'         => $period->start(),
+					'period_end'           => $period->end()
+				]);
+			}
+	
 			$this->subscriber->incrementLimit($subscriptionId, $pack['feature_id'], $units*$pack['quantity']);
 
 			//commition the work after processing
@@ -103,46 +112,20 @@ class DbPackRepo implements PackRepo {
 		}	
 	}
 
-	public function updatePackForUser($subscriptionId, $packId, $units)
-	{
-		try
-		{
-			$this->db->beginTransaction();
-
-			$pack = $this->find($packId);
-
-			$this->db->table(Config::get('throttle::tables.user_pack'))
-				->where('pack_id', $packId)
-				->where('subscription_id', $subscriptionId)
-				->where('status', '1')
-				->increment('units', $units);
-
-			$this->subscriber->incrementLimit($subscriptionId, $pack['feature_id'], $units*$pack['quantity']);
-
-			//commition the work after processing
-			$this->db->commit();
-		}
-		catch(\Exception $e)
-		{
-			$this->db->rollback();
-			throw new Exceptions\InvalidInputException('Invalid pack');
-		}	
-	}
-
-	public function removePacksForUser($packId, $subscriptionId, $units = 1)
+	public function removePacksForUser($packId, $subscriptionId, $units = 1, PeriodInterface $period)
 	{
 		try
 		{
 			$pack = $this->find($packId);
-
-			if( ! $this->subscriber->canReduceLimit($subscriptionId, $packId, $units*$pack['quantity']))
-			{
-				throw new Exceptions\InvalidInputException('Cannot reduce ' . $units . ' ' . $pack['name']);		
-			}
 
 			if( ! $this->isPackExistsForUser($subscriptionId, $packId, $units))
 			{
 				throw new Exceptions\InvalidInputException('No such pack with ' . $units . ' unit exists for user');	
+			}
+
+			if( ! $this->subscriber->canReduceLimit($subscriptionId, $pack['feature_id'], $units*$pack['quantity']))
+			{
+				throw new Exceptions\InvalidInputException('Cannot reduce ' . $units . ' ' . $pack['name']);		
 			}
 			
 			$userPack= $this->getPackBySubscriptionId($subscriptionId, $packId);
@@ -150,15 +133,21 @@ class DbPackRepo implements PackRepo {
 			if($userPack['units'] == $units)
 			{
 				$this->db->table(Config::get('throttle::tables.user_pack'))
-					->where('id', $packId)
+					->where('pack_id', $packId)
 					->where('subscription_id', $subscriptionId)
-					->update(['status' => 0]);
+					->where('status', 1)
+					->where('period_start', $period->start())
+					->where('period_end', $period->end())
+					->update(['units' => 0]);
 			}
 			else
 			{
 				$this->db->table(Config::get('throttle::tables.user_pack'))
-					->where('id', $packId)
+					->where('pack_id', $packId)
 					->where('subscription_id', $subscriptionId)
+					->where('status', 1)
+					->where('period_start', $period->start())
+					->where('period_end', $period->end())
 					->decrement('units', $units);
 			}
 
@@ -182,6 +171,19 @@ class DbPackRepo implements PackRepo {
 		if($pack) return true;
 
 		return false;
+	}
+
+	private function updatePackForUser($subscriptionId, $packId, $units, $startDate, $endDate)
+	{
+		$increment = $this->db->table(Config::get('throttle::tables.user_pack'))
+				->where('pack_id', $packId)
+				->where('subscription_id', $subscriptionId)
+				->where('period_start', $startDate)
+				->where('period_end', $endDate)
+				->where('status', '1')
+				->increment('units', $units);
+
+		return $increment;
 	}
 
 	public function getPackBySubscriptionId($subscriptionId, $packId)
@@ -222,6 +224,37 @@ class DbPackRepo implements PackRepo {
 	public function getAllPacks()
 	{
 		$packs = $this->db->table(Config::get('throttle::tables.packs'))
+			->get();
+
+		return $packs;
+	}
+
+	public function seedPackForNewPeriod($subscriptionId, PeriodInterface $period)
+	{
+		$packs = $this->getPacksBySubscriptionId($subscriptionId);
+
+		foreach ($packs as $pack) 
+		{
+			$this->db->table(Config::get('throttle::table.user_pack'))
+				->where('id', $pack['id'])
+				->update(['status' => 0]);
+				
+			$this->db->table(Config::get('throttle::tables.user_pack'))->insert([
+				'subscription_id'      => $pack['subscription_id'],
+				'pack_id'  	  	       => $pack['pack_id'],
+				'units'                => $pack['units'],
+				'status'               => 1,
+				'period_start'         => $period->start(),
+				'period_end'           => $period->end()
+			]);
+		}
+	}
+
+	public function getPacksBySubscriptionId($subscriptionId)
+	{
+		$packs = $this->db->table(Config::get('throttle::tables.user_pack'))
+			->where('subscription_id', $subscriptionId)
+			->where('status', '1')
 			->get();
 
 		return $packs;
