@@ -64,6 +64,16 @@ class DbSubscriberRepo implements SubscriberRepo {
 
 	}
 
+	//unsubscribe the user
+	public function unsubscribe($userId)
+	{
+		//unsubscribing to previous plan.
+		$this->db->table(Config::get('throttle::tables.subscriptions'))
+			->where('user_id', $userId)
+			->where('is_active', '1')
+			->update(['is_active' => '0']);
+	}
+
 	public function addInitialUsageForFeatures($subscriptionId, $planId)
 	{
 		//INSERT into user_feature_usage(`subscription_id`, `feature_id`, `used_quantity`, `date`)

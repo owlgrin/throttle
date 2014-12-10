@@ -77,8 +77,21 @@ class CreateThrottleTable extends Migration {
 			$table->integer('pack_id');
 			$table->integer('units');
 			$table->tinyInteger('status');
-			$table->date('period_start');
-			$table->date('period_end');
+		});
+
+		Schema::create('periods', function(Blueprint $table)
+		{
+			$table->increments('id');
+			$table->date('starts_at');
+			$table->date('ends_at');
+		});
+
+		Schema::create('user_period', function(Blueprint $table)
+		{
+			$table->increments('id');
+			$table->integer('subscription_id');
+			$table->integer('period_id');
+			$table->tinyInteger('status');
 		});
 	}
 
@@ -97,5 +110,7 @@ class CreateThrottleTable extends Migration {
 		Schema::drop('user_feature_limit');
 		Schema::drop('packs');
 		Schema::drop('user_pack');
+		Schema::drop('periods');
+		Schema::drop('user_period');
 	}
 }

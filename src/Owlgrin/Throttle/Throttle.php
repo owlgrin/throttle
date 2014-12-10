@@ -113,6 +113,12 @@ class Throttle {
 		return $this->subscriber->subscribe($this->user, $planIdentifier);
 	}
 
+	//unsubscribes a user to a specific plan
+	public function unsubscribe($planIdentifier)
+	{
+		return $this->subscriber->unsubscribe($this->user);
+	}
+	
 	public function usage(PeriodInterface $period)
 	{
 		return $this->subscriber->getUserUsage($this->subscription['subscription_id'], $period);
