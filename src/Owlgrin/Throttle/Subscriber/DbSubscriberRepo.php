@@ -67,7 +67,6 @@ class DbSubscriberRepo implements SubscriberRepo {
 	//unsubscribe the user
 	public function unsubscribe($userId)
 	{
-		//unsubscribing to previous plan.
 		$this->db->table(Config::get('throttle::tables.subscriptions'))
 			->where('user_id', $userId)
 			->where('is_active', '1')
@@ -397,7 +396,9 @@ class DbSubscriberRepo implements SubscriberRepo {
 	}
 
 	public function getUserUsage($subscriptionId, PeriodInterface $period)
-	{		 
+	{	
+		$period = $period->set($subscriptionId); 
+
 		return $this->db->table(Config::get('throttle::tables.user_feature_limit') .' as ufl')
 			->leftJoin(Config::get('throttle::tables.features'). ' as f', 'ufl.feature_id', '=', 'f.id')
 			->leftJoin(Config::get('throttle::tables.user_feature_usage'). ' as ufu', 'ufl.feature_id', '=', 'ufu.feature_id')

@@ -10,6 +10,7 @@ use Owlgrin\Throttle\Redis\RedisStorage as Redis;
 use Owlgrin\Throttle\Period\PeriodInterface;
 use Owlgrin\Throttle\Pack\PackRepo;
 use Owlgrin\Throttle\Period\ThrottlePeriod;
+use Owlgrin\Throttle\Period\PeriodRepo;
 /**
  * The Throttle core
  */
@@ -20,17 +21,19 @@ class Throttle {
 	protected $plan;
 	protected $redis;
 	protected $pack;
+	protected $periodRepo;	
 
 	protected $user = null;
 	protected $subscription = null;
 
-	public function __construct(Biller $biller, Subscriber $subscriber, Plan $plan, Redis $redis, PackRepo $pack)
+	public function __construct(Biller $biller, Subscriber $subscriber, Plan $plan, Redis $redis, PackRepo $pack, PeriodRepo $periodRepo)
 	{
 		$this->biller = $biller;
 		$this->subscriber = $subscriber;
 		$this->plan = $plan;
 		$this->redis = $redis;
 		$this->pack = $pack;
+		$this->periodRepo = $periodRepo;
 	}
 
 	//sets users details at the time of initialisation
@@ -40,7 +43,6 @@ class Throttle {
 		$this->subscription = $this->subscriber->subscription($this->user);
 		$this->features = $this->plan->getFeaturesByPlan($this->subscription['plan_id']);
 		$this->usages = $this->setUsages();
-		// $this->limits = $this->setLimit($this->subscription['subscription_id']);
 
 		return $this;
 	}
@@ -67,12 +69,6 @@ class Throttle {
 		return $this->usages;
 	}
 
-	// public function getLimits()
-	// {
-	// 	return $this->limits;
-	// }
-
-
 	public function incrementUsages($identifier, $count = 1)
 	{
 		$this->usages[$identifier] += $count;
@@ -93,24 +89,14 @@ class Throttle {
 		return $initializeUsage;	
 	}
 
-	// private function setLimit($subscriptionId)
-	// {
-	// 	$initializeLimit = [];
-
-	// 	$limits = $this->subscriber->getLimit($subscriptionId);
-
-	// 	foreach ($limits as $index => $limit) 
-	// 	{
-	// 		$initializeLimit[$limit['identifier']] = $limit['limit'];
-	// 	}
-
-	// 	return $initializeLimit;
-	// }
-
 	//subscribes a user to a specific plan
-	public function subscribe($planIdentifier)
+	public function subscribe($planIdentifier, $user = null)
 	{
-		return $this->subscriber->subscribe($this->user, $planIdentifier);
+		$user = is_null($user) ? $this->user : $user;
+
+		$this->subscriber->subscribe($user, $planIdentifier);
+
+		$this->user($user);
 	}
 
 	//unsubscribes a user to a specific plan
@@ -124,12 +110,24 @@ class Throttle {
 		return $this->subscriber->getUserUsage($this->subscription['subscription_id'], $period);
 	}
 
+	public function storePeriod($start, $end)
+	{
+		return $this->periodRepo->store($start, $end);
+	}
+
+	public function addSubscriptionPeriod($periodId)
+	{
+		return $this->periodRepo->addSubscriptionPeriod($this->subscription['subscription_id'], $periodId);
+	}
+
 	public function can($identifier, $count = 1, $reduce = true, PeriodInterface $period)
 	{
 		$limit = $this->redis->hashGet("throttle:hashes:limit:{$identifier}", $this->user);
 
 		if($limit === false)
 		{
+			$period = $period->set($this->subscription['subscription_id']);
+
 	 		$limit = $this->subscriber->left($this->subscription['subscription_id'], $identifier, $period->start(), $period->end());
 
 			if(! is_null($limit)) 
@@ -201,13 +199,13 @@ class Throttle {
 		}
 	}
 
-	public function addPack($packId, $units, PeriodInterface $period)
+	public function addPack($packId, $units)
 	{
-		$this->pack->addPackForUser($packId, $this->subscription['subscription_id'], $units, $period);
+		$this->pack->addPackForUser($packId, $this->subscription['subscription_id'], $units);
 	}
 
-	public function removePack($packId, $units, PeriodInterface $period)
+	public function removePack($packId, $units)
 	{
-		$this->pack->removePacksForUser($packId, $this->subscription['subscription_id'], $units, $period);
+		$this->pack->removePacksForUser($packId, $this->subscription['subscription_id'], $units);
 	}
 }

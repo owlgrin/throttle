@@ -5,6 +5,7 @@ use Owlgrin\Throttle\Pack\PackRepo;
 use Owlgrin\Throttle\Subscriber\SubscriberRepo as Subscriber;
 use Owlgrin\Throttle\Exceptions;
 use Owlgrin\Throttle\Period\PeriodInterface;
+use Owlgrin\Throttle\Period\PeriodRepo;
 
 use Exception, Config;
 
@@ -12,11 +13,13 @@ class DbPackRepo implements PackRepo {
 
 	protected $db;
 	protected $subscriber;
+	protected $period;
 
-	public function __construct(Database $db, Subscriber $subscriber)
+	public function __construct(Database $db, Subscriber $subscriber, PeriodRepo $period)
 	{
 		$this->db = $db;
 		$this->subscriber = $subscriber;
+		$this->period = $period;
 	}
 
 	public function store($pack)
@@ -39,7 +42,7 @@ class DbPackRepo implements PackRepo {
 		}
 	}
 
-	public function addPackForUser($packId, $subscriptionId, $units, PeriodInterface $period)
+	public function addPackForUser($packId, $subscriptionId, $units)
 	{
 		try
 		{
@@ -48,7 +51,9 @@ class DbPackRepo implements PackRepo {
 
 			$pack = $this->find($packId);
 
-			$packForUser = $this->updatePackForUser($subscriptionId, $packId, $units, $period->start(), $period->end());
+			$subscriptionPeriod = $this->period->getSubscriptionPeriod($subscriptionId);
+
+			$packForUser = $this->updatePackForUser($subscriptionId, $packId, $units, $subscriptionPeriod['period_id']);
 
 			if(! $packForUser)
 			{
@@ -57,8 +62,7 @@ class DbPackRepo implements PackRepo {
 					'pack_id'  	  	       => $packId,
 					'units'                => $units,
 					'status'               => 1,
-					'period_start'         => $period->start(),
-					'period_end'           => $period->end()
+					'period_id'            => $subscriptionPeriod['period_id']
 				]);
 			}
 	
@@ -112,7 +116,7 @@ class DbPackRepo implements PackRepo {
 		}	
 	}
 
-	public function removePacksForUser($packId, $subscriptionId, $units = 1, PeriodInterface $period)
+	public function removePacksForUser($packId, $subscriptionId, $units = 1)
 	{
 		try
 		{
@@ -127,6 +131,8 @@ class DbPackRepo implements PackRepo {
 			{
 				throw new Exceptions\InvalidInputException('Cannot reduce ' . $units . ' ' . $pack['name']);		
 			}
+
+			$subscriptionPeriod = $this->period->getSubscriptionPeriod($subscriptionId);		
 			
 			$userPack= $this->getPackBySubscriptionId($subscriptionId, $packId);
 
@@ -136,8 +142,7 @@ class DbPackRepo implements PackRepo {
 					->where('pack_id', $packId)
 					->where('subscription_id', $subscriptionId)
 					->where('status', 1)
-					->where('period_start', $period->start())
-					->where('period_end', $period->end())
+					->where('period_id', $subscriptionPeriod['period_id'])
 					->update(['units' => 0]);
 			}
 			else
@@ -146,8 +151,7 @@ class DbPackRepo implements PackRepo {
 					->where('pack_id', $packId)
 					->where('subscription_id', $subscriptionId)
 					->where('status', 1)
-					->where('period_start', $period->start())
-					->where('period_end', $period->end())
+					->where('period_id', $subscriptionPeriod['period_id'])
 					->decrement('units', $units);
 			}
 
@@ -173,13 +177,12 @@ class DbPackRepo implements PackRepo {
 		return false;
 	}
 
-	private function updatePackForUser($subscriptionId, $packId, $units, $startDate, $endDate)
+	private function updatePackForUser($subscriptionId, $packId, $units, $periodId)
 	{
 		$increment = $this->db->table(Config::get('throttle::tables.user_pack'))
 				->where('pack_id', $packId)
 				->where('subscription_id', $subscriptionId)
-				->where('period_start', $startDate)
-				->where('period_end', $endDate)
+				->where('period_id', $periodId)
 				->where('status', '1')
 				->increment('units', $units);
 
@@ -229,9 +232,11 @@ class DbPackRepo implements PackRepo {
 		return $packs;
 	}
 
-	public function seedPackForNewPeriod($subscriptionId, PeriodInterface $period)
+	public function seedPackForNewPeriod($subscriptionId)
 	{
 		$packs = $this->getPacksBySubscriptionId($subscriptionId);
+
+		$period = $this->period->store(\Carbon::today()->toDateString(), \Carbon::today()->addMonth()->toDateString());
 
 		foreach ($packs as $pack) 
 		{
@@ -244,8 +249,7 @@ class DbPackRepo implements PackRepo {
 				'pack_id'  	  	       => $pack['pack_id'],
 				'units'                => $pack['units'],
 				'status'               => 1,
-				'period_start'         => $period->start(),
-				'period_end'           => $period->end()
+				'period_id'            => $period['id']
 			]);
 		}
 	}

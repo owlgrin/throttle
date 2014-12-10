@@ -76,6 +76,7 @@ class CreateThrottleTable extends Migration {
 			$table->integer('subscription_id');
 			$table->integer('pack_id');
 			$table->integer('units');
+			$table->integer('period_id');
 			$table->tinyInteger('status');
 		});
 
@@ -86,7 +87,7 @@ class CreateThrottleTable extends Migration {
 			$table->date('ends_at');
 		});
 
-		Schema::create('user_period', function(Blueprint $table)
+		Schema::create('subscription_period', function(Blueprint $table)
 		{
 			$table->increments('id');
 			$table->integer('subscription_id');

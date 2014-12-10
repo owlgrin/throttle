@@ -70,6 +70,8 @@ class ThrottleTableCommand extends Command {
 		$stub = str_replace('user_feature_limit', Config::get('throttle::tables.user_feature_limit'), $stub);
 		$stub = str_replace('packs', Config::get('throttle::tables.packs'), $stub);
 		$stub = str_replace('user_pack', Config::get('throttle::tables.user_pack'), $stub);
+		$stub = str_replace('periods', Config::get('throttle::tables.periods'), $stub);
+		$stub = str_replace('subscription_period', Config::get('throttle::tables.subscription_period'), $stub);
 
 		return $stub;
 	}
