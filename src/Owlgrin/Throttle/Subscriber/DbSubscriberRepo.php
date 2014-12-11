@@ -5,6 +5,7 @@ use Carbon\Carbon;
 use Illuminate\Database\DatabaseManager as Database;
 use Owlgrin\Throttle\Subscriber\SubscriberRepo;
 use Owlgrin\Throttle\Plan\PlanRepo;
+use Owlgrin\Throttle\Feature\FeatureRepo;
 use Owlgrin\Throttle\Period\PeriodInterface;
 use Owlgrin\Throttle\Exceptions;
 use Exception, Config;
@@ -13,11 +14,13 @@ class DbSubscriberRepo implements SubscriberRepo {
 
 	protected $db;
 	protected $planRepo;
+	protected $featureRepo;
 
-	public function __construct(Database $db, PlanRepo $planRepo)
+	public function __construct(Database $db, PlanRepo $planRepo, FeatureRepo $featureRepo)
 	{
 		$this->db = $db;
 		$this->planRepo = $planRepo;
+		$this->featureRepo = $featureRepo;
 	}
 
 	public function subscribe($userId, $planIdentifier)
@@ -83,8 +86,8 @@ class DbSubscriberRepo implements SubscriberRepo {
 		//from `plan_feature` where `plan_id` = $planId
 		//from plan_features tables  
 		//GROUP BY `feature_id`
-		//feature _id is grouped
-		return $this->db->insert("INSERT into ".Config::get('throttle::tables.user_feature_usage')."(`subscription_id`, `feature_id`, `used_quantity`, `date`) SELECT $subscriptionId, `feature_id`, 0, now() from ".Config::get('throttle::tables.plan_feature')." where `plan_id` = $planId GROUP BY `feature_id`");
+		//feature_id is grouped
+		return $this->db->insert( $this->db->raw("INSERT into ".Config::get('throttle::tables.user_feature_usage')."(`subscription_id`, `feature_id`, `used_quantity`, `date`) SELECT :subscriptionId, `feature_id`, 0, now() from ".Config::get('throttle::tables.plan_feature')." where `plan_id` = :planId GROUP BY `feature_id`"), [ 'subscriptionId' => $subscriptionId, 'planId' => $planId ]);
 	}
 
 	private function addInitialLimitForFeatures($subscriptionId, $planId)
@@ -103,7 +106,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 		//IF() condition in sql checks only top values
 		// GROUP BY `feature_id`
 		// grouping feature_ids
-		return $this->db->insert("INSERT into ".Config::get('throttle::tables.user_feature_limit')."(`subscription_id`, `feature_id`, `limit`) SELECT $subscriptionId, `feature_id` as featureId, IF(`limit` IS NULL, NULL, SUM(`limit`)) AS `limit` FROM (SELECT `feature_id`, `limit` FROM ".Config::get('throttle::tables.plan_feature')." WHERE `plan_id` = $planId ORDER BY `tier` DESC) AS `t1` GROUP BY `feature_id`");
+		return $this->db->insert( $this->db->raw("INSERT into ".Config::get('throttle::tables.user_feature_limit')."(`subscription_id`, `feature_id`, `limit`) SELECT :subscriptionId, `feature_id` as featureId, IF(`limit` IS NULL, NULL, SUM(`limit`)) AS `limit` FROM (SELECT `feature_id`, `limit` FROM ".Config::get('throttle::tables.plan_feature')." WHERE `plan_id` = :planId ORDER BY `tier` DESC) AS `t1` GROUP BY `feature_id`"), ['subscriptionId' => $subscriptionId, 'planId' => $planId]);
 	}
 
 	//increments usage of a feature by featureid
@@ -215,18 +218,6 @@ class DbSubscriberRepo implements SubscriberRepo {
 			->get();
 	}
 
-
-	//returns limit of the particular feature
-	public function featureLimit($planId, $featureId)
-	{
-		return $this->db->table(Config::get('throttle::tables.plan_feature').' as pf')
-			->join(Config::get('throttle::tables.features').' as f', 'f.id', '=', 'pf.feature_id')
-			->select('limit', 'rate', 'name', 'per_quantity')
-			->where('plan_id', $planId)
-			->where('feature_id', $featureId)
-			->get();
-	}
-
 	//returns subscription of a user
 	public function subscription($userId)
 	{
@@ -313,18 +304,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 
 	//returns limit of a feature left
 	public function left($subscriptionId, $identifier, $start, $end)
-	{
-		// $limit = $this->getLimitByIdentifier($subscriptionId, $identifier);
-		// $usages = $this->findLeftUsages($subscriptionId, $identifier, $start, $end);
-
-		// if(! is_null($limit['limit']))
-		// {
-		// 	return $limit['limit'] - $usages['used'];
-		// }
-
-		// return null;
-
-		
+	{	
 		$limit = $this->db->table(Config::get('throttle::tables.user_feature_usage').' AS ufu')
 			->join(Config::get('throttle::tables.user_feature_limit').' as ufl', function($join)
 			{
@@ -363,6 +343,27 @@ class DbSubscriberRepo implements SubscriberRepo {
 			->first();
 	}
 
+	public function getUserUsage($subscriptionId, $startDate, $endDate)
+	{	
+		return $this->db->table(Config::get('throttle::tables.user_feature_limit') .' as ufl')
+			->leftJoin(Config::get('throttle::tables.features'). ' as f', 'ufl.feature_id', '=', 'f.id')
+			->leftJoin(Config::get('throttle::tables.user_feature_usage'). ' as ufu', 'ufl.feature_id', '=', 'ufu.feature_id')
+			->where('ufl.subscription_id', $subscriptionId)
+			->whereBetween('ufu.date', [$startDate, $endDate])
+			->select(\DB::raw('f.id as feature_id, f.identifier as feature_identifier, f.name as feature_name, ufl.limit as feature_limit, SUM(ufu.used_quantity) as feature_usage'))
+			->groupBy('ufu.feature_id')
+			->get();
+	}
+
+	public function getUserFeaturesLimit($subscriptionId)
+	{
+		return $this->db->table(Config::get('throttle::tables.user_feature_limit') .' as ufl')
+			->join(Config::get('throttle::tables.features'). ' as f', 'ufl.feature_id', '=', 'f.id')
+			->where('subscription_id', $subscriptionId)
+			->select('f.id as feature_id', 'f.name as feature_name', 'ufl.limit as feature_limit')
+			->get();
+	}
+
 	//returns usage of the user
 	public function getLimitByIdentifier($subscriptionId, $identifier)
 	{
@@ -372,7 +373,6 @@ class DbSubscriberRepo implements SubscriberRepo {
 			->select('tfl.limit')
 			->first();
 	}
-
 
 	public function canReduceLimit($subscriptionId, $featureId, $limit)
 	{
@@ -386,26 +386,4 @@ class DbSubscriberRepo implements SubscriberRepo {
 		return false;
 	}
 
-	public function getUserFeaturesLimit($subscriptionId)
-	{
-		return $this->db->table(Config::get('throttle::tables.user_feature_limit') .' as ufl')
-			->join(Config::get('throttle::tables.features'). ' as f', 'ufl.feature_id', '=', 'f.id')
-			->where('subscription_id', $subscriptionId)
-			->select('f.id as feature_id', 'f.name as feature_name', 'ufl.limit as feature_limit')
-			->get();
-	}
-
-	public function getUserUsage($subscriptionId, PeriodInterface $period)
-	{	
-		$period = $period->set($subscriptionId); 
-
-		return $this->db->table(Config::get('throttle::tables.user_feature_limit') .' as ufl')
-			->leftJoin(Config::get('throttle::tables.features'). ' as f', 'ufl.feature_id', '=', 'f.id')
-			->leftJoin(Config::get('throttle::tables.user_feature_usage'). ' as ufu', 'ufl.feature_id', '=', 'ufu.feature_id')
-			->where('ufl.subscription_id', $subscriptionId)
-			->whereBetween('ufu.date', [$period->start(), $period->end()])
-			->select(\DB::raw('f.id as feature_id, f.identifier as feature_identifier, f.name as feature_name, ufl.limit as feature_limit, SUM(ufu.used_quantity) as feature_usage'))
-			->groupBy('ufu.feature_id')
-			->get();
-	}
 }

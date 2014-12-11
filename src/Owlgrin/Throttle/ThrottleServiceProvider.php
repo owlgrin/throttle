@@ -18,7 +18,7 @@ class ThrottleServiceProvider extends ServiceProvider {
 	 */
 	public function boot()
 	{
-		$this->package('sahil/throttle');
+		$this->package('owlgrin/throttle');
 	}
 
 	/**
@@ -118,8 +118,9 @@ class ThrottleServiceProvider extends ServiceProvider {
 		$this->app->bind('Owlgrin\Throttle\Subscriber\SubscriberRepo', 'Owlgrin\Throttle\Subscriber\DbSubscriberRepo');
 		$this->app->bind('Owlgrin\Throttle\Plan\PlanRepo', 'Owlgrin\Throttle\Plan\DbPlanRepo');
 		$this->app->bind('Owlgrin\Throttle\Pack\PackRepo', 'Owlgrin\Throttle\Pack\DbPackRepo');
+		$this->app->bind('Owlgrin\Throttle\Period\PeriodRepo', 'Owlgrin\Throttle\Period\DbPeriodRepo');
+		$this->app->bind('Owlgrin\Throttle\Feature\FeatureRepo', 'Owlgrin\Throttle\Feature\DbFeatureRepo');
 
 		$this->app->singleton('throttle', 'Owlgrin\Throttle\Throttle');
 	}
-
 }

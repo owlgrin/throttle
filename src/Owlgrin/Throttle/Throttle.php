@@ -1,15 +1,11 @@
 <?php namespace Owlgrin\Throttle;
 
-use Carbon\Carbon;
-
 use Owlgrin\Throttle\Biller\Biller;
 use Owlgrin\Throttle\Subscriber\SubscriberRepo as Subscriber;
 use Owlgrin\Throttle\Plan\PlanRepo as Plan;
 use Owlgrin\Throttle\Exceptions;
 use Owlgrin\Throttle\Redis\RedisStorage as Redis;
-use Owlgrin\Throttle\Period\PeriodInterface;
 use Owlgrin\Throttle\Pack\PackRepo;
-use Owlgrin\Throttle\Period\ThrottlePeriod;
 use Owlgrin\Throttle\Period\PeriodRepo;
 /**
  * The Throttle core
@@ -106,27 +102,32 @@ class Throttle {
 		return $this->subscriber->unsubscribe($this->user);
 	}
 	
-	public function usage(PeriodInterface $period)
+	public function usage()
 	{
-		return $this->subscriber->getUserUsage($this->subscription['subscription_id'], $period);
+		return $this->subscriber->getUserUsage($this->subscription['subscription_id'], $this->period['starts_at'], $this->period['ends_at']);
 	}
 
-	public function period($start, $end)
+	public function period($startDate, $endDate)
 	{
-		$this->periodRepo->store($this->subscription['subscription_id'], $start, $end);
+		$this->periodRepo->store($this->subscription['subscription_id'], $startDate, $endDate);
 
 		return $this->user($this->user);
 	}
 
-	public function can($identifier, $count = 1, $reduce = true, PeriodInterface $period)
+	public function updatePeriod($startDate, $endDate)
+	{
+		$this->periodRepo->unsetPeriod($this->subscription['subscription_id']);
+
+		$this->period($startDate, $endDate);
+	}
+
+	public function can($identifier, $count = 1, $reduce = true)
 	{
 		$limit = $this->redis->hashGet("throttle:hashes:limit:{$identifier}", $this->user);
-
+	
 		if($limit === false)
 		{
-			$period = $period->set($this->subscription['subscription_id']);
-
-	 		$limit = $this->subscriber->left($this->subscription['subscription_id'], $identifier, $period->start(), $period->end());
+	 		$limit = $this->subscriber->left($this->subscription['subscription_id'], $identifier, $this->period['starts_at'], $this->period['ends_at']);
 
 			if(! is_null($limit)) 
 			{
@@ -156,9 +157,9 @@ class Throttle {
 		}
 	}
 
-	public function bill($startDate, $endDate)
+	public function bill()
 	{
-		return $this->biller->bill($this->user, $startDate, $endDate);
+		return $this->biller->bill($this->user, $this->period['starts_at'], $this->period['ends_at']);
 	}
 
 	public function estimate($usages)

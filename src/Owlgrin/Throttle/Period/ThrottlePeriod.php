@@ -9,9 +9,8 @@ class ThrottlePeriod implements PeriodInterface {
 	protected $period;
 	protected $periodRepo;
 
-	public function __construct($period, PeriodRepo $repo)
+	public function __construct(PeriodRepo $periodRepo)
 	{
-		$this->period = $period;
 		$this->periodRepo = $periodRepo;
 	}
 
@@ -24,12 +23,12 @@ class ThrottlePeriod implements PeriodInterface {
 
 	public function start($formatted = false)
 	{
-		return Carbon::createFromFormat('Y-m-d', $this->period['starts_at'])->toFormattedDateString() : $this->period['starts_at'];
+		return $formatted ? Carbon::createFromFormat('Y-m-d', $this->period['starts_at'])->toFormattedDateString() : $this->period['starts_at'];
 	}
 
 	public function end($formatted = false)
 	{
-		return Carbon::createFromFormat('Y-m-d', $this->period['ends_at'])->toFormattedDateString() : $this->period['ends_at'];
+		return $formatted ? Carbon::createFromFormat('Y-m-d', $this->period['ends_at'])->toFormattedDateString() : $this->period['ends_at'];
 	}	
 
 	public function isNewPeriod()

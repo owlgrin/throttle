@@ -7,7 +7,7 @@ use Owlgrin\Throttle\Exceptions;
 use Owlgrin\Throttle\Period\PeriodInterface;
 use Owlgrin\Throttle\Period\PeriodRepo;
 
-use Exception, Config;
+use Exception, Config, Carbon\Carbon;
 
 class DbPackRepo implements PackRepo {
 
@@ -127,7 +127,7 @@ class DbPackRepo implements PackRepo {
 				throw new Exceptions\InvalidInputException('No such pack with ' . $units . ' unit exists for user');	
 			}
 
-			if( ! $this->subscriber->canReduceLimit($subscriptionId, $pack['feature_id'], $units*$pack['quantity']))
+			if( ! $this->suscriber->canReduceLimit($subscriptionId, $pack['feature_id'], $units*$pack['quantity']))
 			{
 				throw new Exceptions\InvalidInputException('Cannot reduce ' . $units . ' ' . $pack['name']);		
 			}
@@ -214,14 +214,16 @@ class DbPackRepo implements PackRepo {
 		return $pack;
 	}
 
-	public function findLimitOfUserByPackId($subscriptionId, $packId)
+	public function isValidPackForUser($subscriptionId, $packId)
 	{
-		return $this->db->table(Config::get('throttle::tables.user_feature_limit').' as ufl')
+		$limit =  $this->db->table(Config::get('throttle::tables.user_feature_limit').' as ufl')
 			->join(Config::get('throttle::tables.packs').' as p', 'p.feature_id', '=', 'ufl.feature_id')
 			->where('ufl.subscription_id', $subscriptionId)
 			->where('p.id', $packId)
-			->select('ufl.limit')	
+			->select('ufl.limit')
 			->first();
+
+		return ! is_null($limit);
 	}
 
 	public function getAllPacks()
@@ -236,7 +238,7 @@ class DbPackRepo implements PackRepo {
 	{
 		$packs = $this->getPacksBySubscriptionId($subscriptionId);
 
-		$period = $this->period->store($subscriptionId, \Carbon::today()->toDateString(), \Carbon::today()->addMonth()->toDateString());
+		$period = $this->period->store($subscriptionId, Carbon::today()->toDateString(), Carbon::today()->addMonth()->toDateString());
 
 		foreach ($packs as $pack) 
 		{

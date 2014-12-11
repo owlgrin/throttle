@@ -1,15 +1,24 @@
 <?php namespace Owlgrin\Throttle\Period;
 
+use Illuminate\Database\DatabaseManager as Database;
+
 use Owlgrin\Throttle\Period\PeriodRepo;
+
+use Config;
 
 class DbPeriodRepo implements PeriodRepo {
 
-	public function store($subscriptionId, $start, $end)
+	public function __construct(Database $db)
 	{
-		return $this->db->table(Config::get('throttle::tables.subsciption_period'))->insertGetId([
-			'subsciption_id' => $subscriptionId,
-			'starts_at' => $start,
-			'ends_at' => $end,
+		$this->db = $db;
+	}
+
+	public function store($subscriptionId, $startDate, $endDate)
+	{
+		return $this->db->table(Config::get('throttle::tables.subscription_period'))->insertGetId([
+			'subscription_id' => $subscriptionId,
+			'starts_at' => $startDate,
+			'ends_at' => $endDate,
 			'status' => 1
 		]);
 	}
@@ -20,5 +29,13 @@ class DbPeriodRepo implements PeriodRepo {
 			->where('subscription_id', $subscriptionId)
 			->where('status', 1)
 			->first();
+	}
+
+	public function unsetPeriod($subscriptionId)
+	{
+		$this->db->table(Config::get('throttle::tables.subscription_period'))
+			->where('subscription_id', $subscriptionId)
+			->where('status', 1)
+			->update('status', 0);
 	}
 }
