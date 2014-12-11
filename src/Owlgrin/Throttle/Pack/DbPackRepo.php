@@ -51,9 +51,9 @@ class DbPackRepo implements PackRepo {
 
 			$pack = $this->find($packId);
 
-			$subscriptionPeriod = $this->period->getSubscriptionPeriod($subscriptionId);
+			$subscriptionPeriod = $this->period->getPeriodBySubscription($subscriptionId);
 
-			$packForUser = $this->updatePackForUser($subscriptionId, $packId, $units, $subscriptionPeriod['period_id']);
+			$packForUser = $this->updatePackForUser($subscriptionId, $packId, $units, $subscriptionPeriod['id']);
 
 			if(! $packForUser)
 			{
@@ -62,7 +62,7 @@ class DbPackRepo implements PackRepo {
 					'pack_id'  	  	       => $packId,
 					'units'                => $units,
 					'status'               => 1,
-					'period_id'            => $subscriptionPeriod['period_id']
+					'period_id'            => $subscriptionPeriod['id']
 				]);
 			}
 	
@@ -132,7 +132,7 @@ class DbPackRepo implements PackRepo {
 				throw new Exceptions\InvalidInputException('Cannot reduce ' . $units . ' ' . $pack['name']);		
 			}
 
-			$subscriptionPeriod = $this->period->getSubscriptionPeriod($subscriptionId);		
+			$subscriptionPeriod = $this->period->getPeriodBySubscription($subscriptionId);		
 			
 			$userPack= $this->getPackBySubscriptionId($subscriptionId, $packId);
 
@@ -142,7 +142,7 @@ class DbPackRepo implements PackRepo {
 					->where('pack_id', $packId)
 					->where('subscription_id', $subscriptionId)
 					->where('status', 1)
-					->where('period_id', $subscriptionPeriod['period_id'])
+					->where('period_id', $subscriptionPeriod['id'])
 					->update(['units' => 0]);
 			}
 			else
@@ -236,7 +236,7 @@ class DbPackRepo implements PackRepo {
 	{
 		$packs = $this->getPacksBySubscriptionId($subscriptionId);
 
-		$period = $this->period->store(\Carbon::today()->toDateString(), \Carbon::today()->addMonth()->toDateString());
+		$period = $this->period->store($subscriptionId, \Carbon::today()->toDateString(), \Carbon::today()->addMonth()->toDateString());
 
 		foreach ($packs as $pack) 
 		{

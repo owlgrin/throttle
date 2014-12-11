@@ -43,6 +43,7 @@ class Throttle {
 		$this->subscription = $this->subscriber->subscription($this->user);
 		$this->features = $this->plan->getFeaturesByPlan($this->subscription['plan_id']);
 		$this->usages = $this->setUsages();
+		$this->period = $this->periodRepo->getPeriodBySubscription($this->subscription['subscription_id']);
 
 		return $this;
 	}
@@ -110,14 +111,11 @@ class Throttle {
 		return $this->subscriber->getUserUsage($this->subscription['subscription_id'], $period);
 	}
 
-	public function storePeriod($start, $end)
+	public function period($start, $end)
 	{
-		return $this->periodRepo->store($start, $end);
-	}
+		$this->periodRepo->store($this->subscription['subscription_id'], $start, $end);
 
-	public function addSubscriptionPeriod($periodId)
-	{
-		return $this->periodRepo->addSubscriptionPeriod($this->subscription['subscription_id'], $periodId);
+		return $this->user($this->user);
 	}
 
 	public function can($identifier, $count = 1, $reduce = true, PeriodInterface $period)
