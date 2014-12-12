@@ -27,7 +27,7 @@ class PayAsYouGoBiller implements Biller{
 		return $this->calculateByUsage($usages, $userId);
 	}
 
-	public function calculateByPacks($packs)
+	private function calculateByPacks($packs)
 	{
 		$allPacks = [];
 
@@ -39,7 +39,7 @@ class PayAsYouGoBiller implements Biller{
 		return $allPacks;
 	}
 
-	public function calculateByUsage($usages, $userId = null)
+	private function calculateByUsage($usages, $userId = null)
 	{
 		$amount = 0;
 		$lines = [];

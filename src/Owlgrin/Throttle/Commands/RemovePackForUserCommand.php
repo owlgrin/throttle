@@ -45,7 +45,7 @@ class RemovePackForUserCommand extends Command {
 		$units = $this->option('units');
 
 		$this->pack->removePacksForUser($packId, $subscriptionId, $units);
-		$this->info('User With subscription id '.$subscriptionId.' has been added to pack with id '.$packId. 'with units - '.$units);
+		$this->info('User With subscription id '.$subscriptionId.' has been removed to pack with id '.$packId. 'with units - '.$units);
 	}
 	
 	protected function getOptions()

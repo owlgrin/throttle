@@ -5,6 +5,8 @@ use Owlgrin\Throttle\Subscriber\SubscriberRepo as Subscriber;
 use Owlgrin\Throttle\Plan\PlanRepo as Plan;
 use Owlgrin\Throttle\Exceptions;
 use Owlgrin\Throttle\Redis\RedisStorage as Redis;
+use Owlgrin\Throttle\Pack\PackRepo;
+use Owlgrin\Throttle\Period\PeriodRepo;
 /**
  * The Throttle core
  */
@@ -14,16 +16,20 @@ class Throttle {
 	protected $subscriber;
 	protected $plan;
 	protected $redis;
+	protected $pack;
+	protected $periodRepo;	
 
 	protected $user = null;
 	protected $subscription = null;
 
-	public function __construct(Biller $biller, Subscriber $subscriber, Plan $plan, Redis $redis)
+	public function __construct(Biller $biller, Subscriber $subscriber, Plan $plan, Redis $redis, PackRepo $pack, PeriodRepo $periodRepo)
 	{
 		$this->biller = $biller;
 		$this->subscriber = $subscriber;
 		$this->plan = $plan;
 		$this->redis = $redis;
+		$this->pack = $pack;
+		$this->periodRepo = $periodRepo;
 	}
 
 	//sets users details at the time of initialisation
@@ -31,8 +37,9 @@ class Throttle {
 	{
 		$this->user = $user;
 		$this->subscription = $this->subscriber->subscription($this->user);
-		$this->features = $this->plan->getFeaturesByPlan($this->subscription['planId']);
+		$this->features = $this->plan->getFeaturesByPlan($this->subscription['plan_id']);
 		$this->usages = $this->setUsages();
+		$this->period = $this->periodRepo->getPeriodBySubscription($this->subscription['subscription_id']);
 
 		return $this;
 	}
@@ -64,57 +71,69 @@ class Throttle {
 		$this->usages[$identifier] += $count;
 	}
 
-	//this function sets used count
-	public function setUsedCount($identifier, $value = 0)
-	{
-		$this->used[$identifier] = $value;
-
-		return $this;
-	}
-
-	//this function returns used count
-	public function getUsedCount($identifier)
-	{
-		return $this->used[$identifier];
-	}
-
 	private function setUsages()
 	{
+		$initializeUsage = [];
+
 		foreach($this->features as $index => $feature) 
 		{
 			if( ! isset($usages[$feature['identifier']]))
 			{
-				$this->usages[$feature['identifier']] = 0;
+				$initializeUsage[$feature['identifier']] = 0;
 			}
 		}	
 
-		return $this->usages;	
+		return $initializeUsage;	
 	}
 
 	//subscribes a user to a specific plan
-	public function subscribe($planIdentifier)
+	public function subscribe($planIdentifier, $user = null)
 	{
-		return $this->subscriber->subscribe($this->user, $planIdentifier);
+		$user = is_null($user) ? $this->user : $user;
+
+		$this->subscriber->subscribe($user, $planIdentifier);
+
+		$this->user($user);
 	}
 
-	public function usage($startDate, $endDate)
+	//unsubscribes a user to a specific plan
+	public function unsubscribe($planIdentifier)
 	{
-		return $this->subscriber->getUserUsage($this->user, $this->subscription['subscriptionId'], $startDate, $endDate);
+		return $this->subscriber->unsubscribe($this->user);
+	}
+	
+	public function usage()
+	{
+		return $this->subscriber->getUserUsage($this->subscription['subscription_id'], $this->period['starts_at'], $this->period['ends_at']);
+	}
+
+	public function period($startDate, $endDate)
+	{
+		$this->periodRepo->store($this->subscription['subscription_id'], $startDate, $endDate);
+
+		return $this->user($this->user);
+	}
+
+	public function updatePeriod($startDate, $endDate)
+	{
+		$this->periodRepo->unsetPeriod($this->subscription['subscription_id']);
+
+		$this->period($startDate, $endDate);
 	}
 
 	public function can($identifier, $count = 1, $reduce = true)
 	{
 		$limit = $this->redis->hashGet("throttle:hashes:limit:{$identifier}", $this->user);
-
+	
 		if($limit === false)
 		{
-	 		$limit = $limit = $this->subscriber->left($this->subscription['subscriptionId'], $identifier);
+	 		$limit = $this->subscriber->left($this->subscription['subscription_id'], $identifier, $this->period['starts_at'], $this->period['ends_at']);
 
 			if(! is_null($limit)) 
 			{
 				$limit = $limit - $this->usages[$identifier];
 			}
-			
+		
 			$this->redis->hashSet("throttle:hashes:limit:{$identifier}", $this->user, $limit);
 		}
 		
@@ -138,9 +157,9 @@ class Throttle {
 		}
 	}
 
-	public function bill($startDate, $endDate)
+	public function bill()
 	{
-		return $this->biller->bill($this->user, $startDate, $endDate);
+		return $this->biller->bill($this->user, $this->period['starts_at'], $this->period['ends_at']);
 	}
 
 	public function estimate($usages)
@@ -151,7 +170,7 @@ class Throttle {
 	//increments usage of a particular identifier
 	public function increment($identifier, $quantity = 1)
 	{
-		return $this->subscriber->increment($this->subscription['subscriptionId'], $identifier, $quantity);
+		return $this->subscriber->increment($this->subscription['subscription_id'], $identifier, $quantity);
 	}
 	
 	public function plan($plan)
@@ -159,44 +178,33 @@ class Throttle {
 		return $this->plan->add($plan);
 	}
 
-	public function left($identifier, $count = 1)
-	{
-		$userId = $this->getUser();
-
-		$limit = $this->redis->hashGet("throttle:hashes:limit:{$identifier}", $userId);
-	
-		if($limit === false)
-        {
-        	$limit = $this->subscriber->left($this->subscription['subscriptionId'], $identifier);
-	  
-	        $this->redis->hashSet("throttle:hashes:limit:{$identifier}", $userId, $limit);
-        }
-
-        if($limit === "" or is_null($limit))
-        {
-        	return null;
-        }
-
-        return $this->redis->hashIncrement("throttle:hashes:limit:{$identifier}", $userId, -($count));
-	}
-
 	public function unsetLimit($identifier)
 	{
 		$this->redis->hashUnset("throttle:hashes:limit:{$identifier}", $this->getUser());
 	}
 
-	public function exiting()
+	public function flush()
 	{
 		$usages = $this->getUsages();
-		
+	
 		foreach($usages as $entity => $value) 
 		{
-			if($value > 0 or $value < 0)
+			if($value !== 0)
 			{
 				$this->increment($entity, $value);			
 			}
 
 			$this->unsetLimit($entity);
 		}
+	}
+
+	public function addPack($packId, $units)
+	{
+		$this->pack->addPackForUser($packId, $this->subscription['subscription_id'], $units);
+	}
+
+	public function removePack($packId, $units)
+	{
+		$this->pack->removePacksForUser($packId, $this->subscription['subscription_id'], $units);
 	}
 }
