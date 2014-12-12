@@ -81,7 +81,7 @@ class DbPackRepo implements PackRepo {
 		}	
 	}
 
-	public function isPackExists($packId)
+	private function isPackExists($packId)
 	{
 		try
 		{
@@ -189,7 +189,7 @@ class DbPackRepo implements PackRepo {
 		return $increment;
 	}
 
-	public function getPackBySubscriptionId($subscriptionId, $packId)
+	private function getPackBySubscriptionId($subscriptionId, $packId)
 	{
 		$pack = $this->db->table(Config::get('throttle::tables.user_pack'))
 				->where('pack_id', $packId)
@@ -256,7 +256,7 @@ class DbPackRepo implements PackRepo {
 		}
 	}
 
-	public function getPacksBySubscriptionId($subscriptionId)
+	private function getPacksBySubscriptionId($subscriptionId)
 	{
 		$packs = $this->db->table(Config::get('throttle::tables.user_pack'))
 			->where('subscription_id', $subscriptionId)
