@@ -4,17 +4,22 @@ use Illuminate\Database\DatabaseManager as Database;
 use Owlgrin\Throttle\Pack\PackRepo;
 use Owlgrin\Throttle\Subscriber\SubscriberRepo as Subscriber;
 use Owlgrin\Throttle\Exceptions;
-use Exception, Config;
+use Owlgrin\Throttle\Period\PeriodInterface;
+use Owlgrin\Throttle\Period\PeriodRepo;
+
+use Exception, Config, Carbon\Carbon;
 
 class DbPackRepo implements PackRepo {
 
 	protected $db;
 	protected $subscriber;
+	protected $period;
 
-	public function __construct(Database $db, Subscriber $subscriber)
+	public function __construct(Database $db, Subscriber $subscriber, PeriodRepo $period)
 	{
 		$this->db = $db;
 		$this->subscriber = $subscriber;
+		$this->period = $period;
 	}
 
 	public function store($pack)
@@ -46,13 +51,21 @@ class DbPackRepo implements PackRepo {
 
 			$pack = $this->find($packId);
 
-			$this->db->table(Config::get('throttle::tables.user_pack'))->insert([
-				'subscription_id'      => $subscriptionId,
-				'pack_id'  	  	       => $packId,
-				'units'                => $units,
-				'status'               => 1
-			]);
+			$subscriptionPeriod = $this->period->getPeriodBySubscription($subscriptionId);
 
+			$packForUser = $this->updatePackForUser($subscriptionId, $packId, $units, $subscriptionPeriod['id']);
+
+			if(! $packForUser)
+			{
+				$this->db->table(Config::get('throttle::tables.user_pack'))->insert([
+					'subscription_id'      => $subscriptionId,
+					'pack_id'  	  	       => $packId,
+					'units'                => $units,
+					'status'               => 1,
+					'period_id'            => $subscriptionPeriod['id']
+				]);
+			}
+	
 			$this->subscriber->incrementLimit($subscriptionId, $pack['feature_id'], $units*$pack['quantity']);
 
 			//commition the work after processing
@@ -68,7 +81,7 @@ class DbPackRepo implements PackRepo {
 		}	
 	}
 
-	public function isPackExists($packId)
+	private function isPackExists($packId)
 	{
 		try
 		{
@@ -103,62 +116,42 @@ class DbPackRepo implements PackRepo {
 		}	
 	}
 
-	public function updatePackForUser($subscriptionId, $packId, $units)
-	{
-		try
-		{
-			$this->db->beginTransaction();
-
-			$pack = $this->find($packId);
-
-			$this->db->table(Config::get('throttle::tables.user_pack'))
-				->where('pack_id', $packId)
-				->where('subscription_id', $subscriptionId)
-				->where('status', '1')
-				->increment('units', $units);
-
-			$this->subscriber->incrementLimit($subscriptionId, $pack['feature_id'], $units*$pack['quantity']);
-
-			//commition the work after processing
-			$this->db->commit();
-		}
-		catch(\Exception $e)
-		{
-			$this->db->rollback();
-			throw new Exceptions\InvalidInputException('Invalid pack');
-		}	
-	}
-
 	public function removePacksForUser($packId, $subscriptionId, $units = 1)
 	{
 		try
 		{
 			$pack = $this->find($packId);
 
-			if( ! $this->subscriber->canReduceLimit($subscriptionId, $packId, $units*$pack['quantity']))
-			{
-				throw new Exceptions\InvalidInputException('Cannot reduce ' . $units . ' ' . $pack['name']);		
-			}
-
 			if( ! $this->isPackExistsForUser($subscriptionId, $packId, $units))
 			{
 				throw new Exceptions\InvalidInputException('No such pack with ' . $units . ' unit exists for user');	
 			}
+
+			if( ! $this->suscriber->canReduceLimit($subscriptionId, $pack['feature_id'], $units*$pack['quantity']))
+			{
+				throw new Exceptions\InvalidInputException('Cannot reduce ' . $units . ' ' . $pack['name']);		
+			}
+
+			$subscriptionPeriod = $this->period->getPeriodBySubscription($subscriptionId);		
 			
 			$userPack= $this->getPackBySubscriptionId($subscriptionId, $packId);
 
 			if($userPack['units'] == $units)
 			{
 				$this->db->table(Config::get('throttle::tables.user_pack'))
-					->where('id', $packId)
+					->where('pack_id', $packId)
 					->where('subscription_id', $subscriptionId)
-					->update(['status' => 0]);
+					->where('status', 1)
+					->where('period_id', $subscriptionPeriod['id'])
+					->update(['units' => 0]);
 			}
 			else
 			{
 				$this->db->table(Config::get('throttle::tables.user_pack'))
-					->where('id', $packId)
+					->where('pack_id', $packId)
 					->where('subscription_id', $subscriptionId)
+					->where('status', 1)
+					->where('period_id', $subscriptionPeriod['period_id'])
 					->decrement('units', $units);
 			}
 
@@ -184,7 +177,19 @@ class DbPackRepo implements PackRepo {
 		return false;
 	}
 
-	public function getPackBySubscriptionId($subscriptionId, $packId)
+	private function updatePackForUser($subscriptionId, $packId, $units, $periodId)
+	{
+		$increment = $this->db->table(Config::get('throttle::tables.user_pack'))
+				->where('pack_id', $packId)
+				->where('subscription_id', $subscriptionId)
+				->where('period_id', $periodId)
+				->where('status', '1')
+				->increment('units', $units);
+
+		return $increment;
+	}
+
+	private function getPackBySubscriptionId($subscriptionId, $packId)
 	{
 		$pack = $this->db->table(Config::get('throttle::tables.user_pack'))
 				->where('pack_id', $packId)
@@ -209,19 +214,53 @@ class DbPackRepo implements PackRepo {
 		return $pack;
 	}
 
-	public function findLimitOfUserByPackId($subscriptionId, $packId)
+	public function isValidPackForUser($subscriptionId, $packId)
 	{
-		return $this->db->table(Config::get('throttle::tables.user_feature_limit').' as ufl')
+		$limit =  $this->db->table(Config::get('throttle::tables.user_feature_limit').' as ufl')
 			->join(Config::get('throttle::tables.packs').' as p', 'p.feature_id', '=', 'ufl.feature_id')
 			->where('ufl.subscription_id', $subscriptionId)
 			->where('p.id', $packId)
-			->select('ufl.limit')	
+			->select('ufl.limit')
 			->first();
+
+		return ! is_null($limit);
 	}
 
 	public function getAllPacks()
 	{
 		$packs = $this->db->table(Config::get('throttle::tables.packs'))
+			->get();
+
+		return $packs;
+	}
+
+	public function seedPackForNewPeriod($subscriptionId)
+	{
+		$packs = $this->getPacksBySubscriptionId($subscriptionId);
+
+		$period = $this->period->store($subscriptionId, Carbon::today()->toDateString(), Carbon::today()->addMonth()->toDateString());
+
+		foreach ($packs as $pack) 
+		{
+			$this->db->table(Config::get('throttle::table.user_pack'))
+				->where('id', $pack['id'])
+				->update(['status' => 0]);
+				
+			$this->db->table(Config::get('throttle::tables.user_pack'))->insert([
+				'subscription_id'      => $pack['subscription_id'],
+				'pack_id'  	  	       => $pack['pack_id'],
+				'units'                => $pack['units'],
+				'status'               => 1,
+				'period_id'            => $period['id']
+			]);
+		}
+	}
+
+	private function getPacksBySubscriptionId($subscriptionId)
+	{
+		$packs = $this->db->table(Config::get('throttle::tables.user_pack'))
+			->where('subscription_id', $subscriptionId)
+			->where('status', '1')
 			->get();
 
 		return $packs;

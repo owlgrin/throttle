@@ -44,9 +44,7 @@ class AddPackForUserCommand extends Command {
 		$subscriptionId = $this->option('subscription_id');
 		$units = $this->option('units');
 
-		$limit = $this->pack->findLimitOfUserByPackId($subscriptionId, $packId);
-
-		if(! is_null($limit))
+		if($this->pack->isValidPackForUser($subscriptionId, $packId))
 		{
 			$this->pack->addPackForUser($packId, $subscriptionId, $units);
 			$this->info('User With subscription id '.$subscriptionId.' has been added to pack with id '.$packId. 'with units - '.$units);			

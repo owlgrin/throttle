@@ -94,6 +94,11 @@ class ThrottleServiceProvider extends ServiceProvider {
 			return $app->make('Owlgrin\Throttle\Commands\FeatureListCommand');
 		});
 
+		$this->app->bindShared('command.seed.daily.usage', function($app)
+		{
+			return $app->make('Owlgrin\Throttle\Commands\SeedDailyUsageCommand');
+		});
+
 		$this->commands('command.throttle.table');
 		$this->commands('command.user.subscribe');
 		$this->commands('command.plan.entry');
@@ -104,6 +109,7 @@ class ThrottleServiceProvider extends ServiceProvider {
 		$this->commands('command.pack.list');
 		$this->commands('command.plan.list');
 		$this->commands('command.feature.list');
+		$this->commands('command.seed.daily.usage');
 	}
 
 	protected function registerRepositories()
@@ -112,8 +118,9 @@ class ThrottleServiceProvider extends ServiceProvider {
 		$this->app->bind('Owlgrin\Throttle\Subscriber\SubscriberRepo', 'Owlgrin\Throttle\Subscriber\DbSubscriberRepo');
 		$this->app->bind('Owlgrin\Throttle\Plan\PlanRepo', 'Owlgrin\Throttle\Plan\DbPlanRepo');
 		$this->app->bind('Owlgrin\Throttle\Pack\PackRepo', 'Owlgrin\Throttle\Pack\DbPackRepo');
+		$this->app->bind('Owlgrin\Throttle\Period\PeriodRepo', 'Owlgrin\Throttle\Period\DbPeriodRepo');
+		$this->app->bind('Owlgrin\Throttle\Feature\FeatureRepo', 'Owlgrin\Throttle\Feature\DbFeatureRepo');
 
 		$this->app->singleton('throttle', 'Owlgrin\Throttle\Throttle');
 	}
-
 }

@@ -51,6 +51,10 @@ return array(
 		 * This table stores packs used by the user
 		 * with units
 		 */
-		'user_pack' => 'user_pack'
+		'user_pack' => 'user_pack',
+		/**
+		 * This table stores period used by the user
+		 */
+		'subscription_period' => 'subscription_period'
 	),
 );
