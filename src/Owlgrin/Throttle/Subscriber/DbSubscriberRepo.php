@@ -249,11 +249,6 @@ class DbSubscriberRepo implements SubscriberRepo {
 	{
 		try
 		{
-			if(! $this->can($subscriptionId, $identifier, $count))
-			{
-				throw new Exceptions\LimitExceededException;
-			}			
-
 			$today = Carbon::today()->toDateString();
 
 			$update = $this->db->table(Config::get('throttle::tables.user_feature_usage').' AS ufu')
@@ -293,27 +288,34 @@ class DbSubscriberRepo implements SubscriberRepo {
 	//returns limit of a feature left
 	public function left($subscriptionId, $identifier)
 	{
-		$limit = $this->db->table(Config::get('throttle::tables.user_feature_usage').' AS ufu')
-			->join(Config::get('throttle::tables.user_feature_limit').' as ufl', function($join)
-			{
-				$join->on('ufu.subscription_id', '=', 'ufl.subscription_id');
-				$join->on('ufu.feature_id', '=', 'ufl.feature_id');
-			})
-			->join(Config::get('throttle::tables.features').' as f', function($join)
-			{
-				$join->on('f.id', '=', 'ufu.feature_id');
-			})
-			->where('ufu.subscription_id', $subscriptionId)
-			->where('f.identifier', $identifier)
-			->select($this->db->raw('sum( ufu.used_quantity ) AS used, ufl.limit AS fLimit'))
-			->first();
-
-		if(! is_null($limit['fLimit']))
+		try
 		{
-			return $limit['fLimit'] - $limit['used'];
-		}
+			$limit = $this->db->table(Config::get('throttle::tables.user_feature_usage').' AS ufu')
+				->join(Config::get('throttle::tables.user_feature_limit').' as ufl', function($join)
+				{
+					$join->on('ufu.subscription_id', '=', 'ufl.subscription_id');
+					$join->on('ufu.feature_id', '=', 'ufl.feature_id');
+				})
+				->join(Config::get('throttle::tables.features').' as f', function($join)
+				{
+					$join->on('f.id', '=', 'ufu.feature_id');
+				})
+				->where('ufu.subscription_id', $subscriptionId)
+				->where('f.identifier', $identifier)
+				->select($this->db->raw('sum( ufu.used_quantity ) AS used, ufl.limit AS fLimit'))
+				->first();
 
-		return null;
+			if(! is_null($limit['fLimit']))
+			{
+				return $limit['fLimit'] - $limit['used'];
+			}
+
+			return null;
+		}
+		catch(\PDOException $e)
+		{dd("ee");
+			dd($e->getMessage());
+		}
 	}
 
 	public function canReduceLimit($subscriptionId, $featureId, $limit)
@@ -326,5 +328,78 @@ class DbSubscriberRepo implements SubscriberRepo {
 		}
 
 		return false;
+	}
+
+
+	public function attempt($subscriptionId, $identifier, $count = 1)
+	{
+		try
+		{		
+			//starting a transition
+			$this->db->beginTransaction();
+
+			$limit = $this->left($subscriptionId, $identifier);
+
+			if( ! $this->isHardLimitAllowed(0, $count))
+			{
+				throw new \Exception('cannot do this');
+			}
+
+			$this->increment($subscriptionId, $identifier, $count);
+
+			//commition the work after processing
+			$this->db->commit();
+		}
+		catch(\Exception $e)
+		{
+			//rollback if failed
+			$this->db->rollback();
+		}
+	}
+
+	public function softAttempt($subscriptionId, $identifier, $count = 1)
+	{
+		try
+		{
+			//starting a transition
+			$this->db->beginTransaction();
+
+			$limit = $this->left($subscriptionId, $identifier);
+
+			$incrementCount = $this->isSoftLimitAllowed($limit, $count);
+
+			$this->increment($subscriptionId, $identifier, $incrementCount);	
+
+			//commition the work after processing
+			$this->db->commit();	
+		}
+		catch(\Exception $e)
+		{
+			//rollback if failed
+			$this->db->rollback();
+		}
+	}
+
+	private function isSoftLimitAllowed($limitLeft, $countRequested)
+	{
+		if(! $this->checkIfNull($limitLeft) )
+		{
+			return $limitLeft >= $countRequested ? $countRequested : $limitLeft;
+		}
+		
+		return $countRequested;
+	}
+
+	private function isHardLimitAllowed($limitLeft, $countRequested)
+	{
+		if(! $this->checkIfNull($limitLeft) )
+			return $limitLeft >= $countRequested;
+		
+		return true;
+	}
+
+	private function checkIfNull($limit)
+	{
+		return is_null($limit);
 	}
 }

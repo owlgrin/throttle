@@ -97,44 +97,14 @@ class Throttle {
 		return $this->subscriber->subscribe($this->user, $planIdentifier);
 	}
 
-	public function attempt($identifer, $count = 1)
+	public function attempt($identifier, $count = 1)
 	{
-		$limit = $this->getLimitLeft($identifer);
-		
-		if( ! $this->isLimitUnlimited($limit) and ! $this->isLimitAllowed($limit, $count))
-		{
-			throw new \Exception('cannot do this');
-		}
-dd("erree");
-		$this->redis->hashIncrement("throttle:hashes:limit:{$identifier}", $this->user, -($count));
-
-		$this->hit($identifier, $count);
+		$this->subscriber->attempt($this->subscription['subscriptionId'], $identifier, $count);
 	}
 
-	private function getLimitLeft($identifier)
+	public function softAttempt($identifier, $count = 1)
 	{
-		$limit = $this->redis->hashGet("throttle:hashes:limit:{$identifier}", $this->user);
-
-		if( ! $limit)
-		{
-			$limit = $limit = $this->subscriber->left($this->subscription['subscriptionId'], $identifier);
-
-			$this->redis->hashSet("throttle:hashes:limit:{$identifier}", $this->user, $limit);
-		}
-
-		return $limit;
-	}
-
-	private function isLimitUnlimited($limit)
-	{
-		// '' when returning from redis cache,
-		// null when returning from database
-		return $limit === "" or is_null($limit);
-	}
-
-	private function isLimitAllowed($limitLeft, $countRequested)
-	{
-		return $limitLeft >= $countRequested;
+		$this->subscriber->softAttempt($this->subscription['subscriptionId'], $identifier, $count);
 	}
 
 	public function can($identifier, $count = 1, $reduce = true)
@@ -193,27 +163,6 @@ dd("erree");
 	{
 		return $this->plan->add($plan);
 	}
-
-	// public function left($identifier, $count = 1)
-	// {
-	// 	$userId = $this->getUser();
-
-	// 	$limit = $this->redis->hashGet("throttle:hashes:limit:{$identifier}", $userId);
-	
-	// 	if($limit === false)
- //        {
- //        	$limit = $this->subscriber->left($this->subscription['subscriptionId'], $identifier);
-	  
-	//         $this->redis->hashSet("throttle:hashes:limit:{$identifier}", $userId, $limit);
- //        }
-
- //        if($limit === "" or is_null($limit))
- //        {
- //        	return null;
- //        }
-
- //        return $this->redis->hashIncrement("throttle:hashes:limit:{$identifier}", $userId, -($count));
-	// }
 
 	public function unsetLimit($identifier)
 	{
