@@ -97,13 +97,53 @@ class Throttle {
 		return $this->subscriber->subscribe($this->user, $planIdentifier);
 	}
 
+	public function attempt($identifer, $count = 1)
+	{
+		$limit = $this->getLimitLeft($identifer);
+		
+		if( ! $this->isLimitUnlimited($limit) and ! $this->isLimitAllowed($limit, $count))
+		{
+			throw new \Exception('cannot do this');
+		}
+dd("erree");
+		$this->redis->hashIncrement("throttle:hashes:limit:{$identifier}", $this->user, -($count));
+
+		$this->hit($identifier, $count);
+	}
+
+	private function getLimitLeft($identifier)
+	{
+		$limit = $this->redis->hashGet("throttle:hashes:limit:{$identifier}", $this->user);
+
+		if( ! $limit)
+		{
+			$limit = $limit = $this->subscriber->left($this->subscription['subscriptionId'], $identifier);
+
+			$this->redis->hashSet("throttle:hashes:limit:{$identifier}", $this->user, $limit);
+		}
+
+		return $limit;
+	}
+
+	private function isLimitUnlimited($limit)
+	{
+		// '' when returning from redis cache,
+		// null when returning from database
+		return $limit === "" or is_null($limit);
+	}
+
+	private function isLimitAllowed($limitLeft, $countRequested)
+	{
+		return $limitLeft >= $countRequested;
+	}
+
 	public function can($identifier, $count = 1, $reduce = true)
 	{
 		$limit = $this->redis->hashGet("throttle:hashes:limit:{$identifier}", $this->user);
 
 		if($limit === false)
 		{
-	 		$limit = $limit = $this->subscriber->left($this->subscription['subscriptionId'], $identifier);
+			$limit = $limit = $this->subscriber->left($this->subscription['subscriptionId'], $identifier);
 
 			if(! is_null($limit)) 
 			{
@@ -154,26 +194,26 @@ class Throttle {
 		return $this->plan->add($plan);
 	}
 
-	public function left($identifier, $count = 1)
-	{
-		$userId = $this->getUser();
+	// public function left($identifier, $count = 1)
+	// {
+	// 	$userId = $this->getUser();
 
-		$limit = $this->redis->hashGet("throttle:hashes:limit:{$identifier}", $userId);
+	// 	$limit = $this->redis->hashGet("throttle:hashes:limit:{$identifier}", $userId);
 	
-		if($limit === false)
-        {
-        	$limit = $this->subscriber->left($this->subscription['subscriptionId'], $identifier);
+	// 	if($limit === false)
+ //        {
+ //        	$limit = $this->subscriber->left($this->subscription['subscriptionId'], $identifier);
 	  
-	        $this->redis->hashSet("throttle:hashes:limit:{$identifier}", $userId, $limit);
-        }
+	//         $this->redis->hashSet("throttle:hashes:limit:{$identifier}", $userId, $limit);
+ //        }
 
-        if($limit === "" or is_null($limit))
-        {
-        	return null;
-        }
+ //        if($limit === "" or is_null($limit))
+ //        {
+ //        	return null;
+ //        }
 
-        return $this->redis->hashIncrement("throttle:hashes:limit:{$identifier}", $userId, -($count));
-	}
+ //        return $this->redis->hashIncrement("throttle:hashes:limit:{$identifier}", $userId, -($count));
+	// }
 
 	public function unsetLimit($identifier)
 	{
