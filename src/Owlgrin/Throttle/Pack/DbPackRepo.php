@@ -200,14 +200,13 @@ class DbPackRepo implements PackRepo {
 		return $pack;
 	}
 
-	public function getPacksByUserId($userId, $featureId)
+	public function getPacksForSubscriptionFeature($subscriptionId, $featureId)
 	{
 		$pack = $this->db->table(Config::get('throttle::tables.user_pack').' as up')
-				->join(Config::get('throttle::tables.subscriptions').' as s', 's.id', '=', 'up.subscription_id')
 				->join(Config::get('throttle::tables.packs').' as p', 'p.id', '=', 'up.pack_id')
 				->where('p.feature_id', $featureId)
 				->where('up.status', '1')
-				->where('s.user_id', $userId)
+				->where('up.subscription_id', $subscriptionId)
 				->select('p.id', 'p.price', 'up.units', 'p.quantity')
 				->get();
 				

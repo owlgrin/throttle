@@ -299,8 +299,8 @@ class DbSubscriberRepo implements SubscriberRepo {
 
 	//returns limit of a feature left
 
-	public function left($subscriptionId, $identifier)
-	{
+	public function left($subscriptionId, $identifier, $start, $end)
+	{	
 		try
 		{
 			$limit = $this->db->table(Config::get('throttle::tables.user_feature_usage').' AS ufu')
@@ -315,19 +315,20 @@ class DbSubscriberRepo implements SubscriberRepo {
 				})
 				->where('ufu.subscription_id', $subscriptionId)
 				->where('f.identifier', $identifier)
-				->select($this->db->raw('sum( ufu.used_quantity ) AS used, ufl.limit AS fLimit'))
+				->whereBetween('date', [$start, $end])
+				->select($this->db->raw('ifnull(sum( ufu.used_quantity ), 0) AS used, ufl.limit AS fLimit'))
 				->first();
 
-			if(! is_null($limit['fLimit']))
-			{
-				return $limit['fLimit'] - $limit['used'];
-			}
+				if(! is_null($limit['fLimit']))
+				{
+					return $limit['fLimit'] - $limit['used'];
+				}
 
 			return null;
 		}
 		catch(\PDOException $e)
 		{dd("ee");
-			dd($e->getMessage());
+				dd($e->getMessage());
 		}
 	}
 
@@ -388,16 +389,16 @@ class DbSubscriberRepo implements SubscriberRepo {
 		return false;
 	}
 
-	public function attempt($subscriptionId, $identifier, $count = 1)
+	public function attempt($subscriptionId, $identifier, $count = 1, $start, $end)
 	{
 		try
 		{		
 			//starting a transition
 			$this->db->beginTransaction();
 
-			$limit = $this->left($subscriptionId, $identifier);
+			$limit = $this->left($subscriptionId, $identifier, $start, $end);
 
-			if( ! $this->isHardLimitAllowed(0, $count))
+			if( ! $this->isHardLimitAllowed($limit, $count))
 			{
 				throw new \Exception('cannot do this');
 			}
@@ -414,18 +415,20 @@ class DbSubscriberRepo implements SubscriberRepo {
 		}
 	}
 
-	public function softAttempt($subscriptionId, $identifier, $count = 1)
+	public function softAttempt($subscriptionId, $identifier, $count = 1, $start, $end)
 	{
 		try
 		{
 			//starting a transition
 			$this->db->beginTransaction();
 
-			$limit = $this->left($subscriptionId, $identifier);
+			$limit = $this->left($subscriptionId, $identifier, $start, $end);
 
 			$incrementCount = $this->isSoftLimitAllowed($limit, $count);
 
 			$this->increment($subscriptionId, $identifier, $incrementCount);	
+			
+			return $incrementCount;
 
 			//commition the work after processing
 			$this->db->commit();	
