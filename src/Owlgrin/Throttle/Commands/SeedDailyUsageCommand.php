@@ -4,7 +4,7 @@ use Illuminate\Console\Command;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputArgument;
 use Owlgrin\Throttle\Subscriber\SubscriberRepo;
-use Owlgrin\Throttle\Period\ThrottlePeriod;
+use Owlgrin\Throttle\Period\ActiveSubscriptionPeriod;
 use Owlgrin\Throttle\Pack\PackRepo;
 /**
  * Command to generate the required migration
@@ -34,7 +34,7 @@ class SeedDailyUsageCommand extends Command {
 	protected $pack;
 	protected $period;
 
-	public function __construct(SubscriberRepo $subscriber, ThrottlePeriod $period, PackRepo $pack)
+	public function __construct(SubscriberRepo $subscriber, ActiveSubscriptionPeriod $period, PackRepo $pack)
 	{
  		parent::__construct();
 

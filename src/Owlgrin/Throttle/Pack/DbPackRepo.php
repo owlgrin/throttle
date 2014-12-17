@@ -7,7 +7,7 @@ use Owlgrin\Throttle\Exceptions;
 use Owlgrin\Throttle\Period\PeriodInterface;
 use Owlgrin\Throttle\Period\PeriodRepo;
 
-use Exception, Config, Carbon\Carbon;
+use PDOException, Config, Carbon\Carbon;
 
 class DbPackRepo implements PackRepo {
 
@@ -36,20 +36,20 @@ class DbPackRepo implements PackRepo {
 
 			return $packId;
 		}
-		catch(\Exception $e)
+		catch(PDOException $e)
 		{
-			throw new Exceptions\InvalidInputException;
+			throw new Exceptions\Exception;
 		}
 	}
 
-	public function addPackForUser($packId, $subscriptionId, $units)
+	public function addPackForUser($subscriptionId, $packId, $units)
 	{
 		try
 		{
 			//starting a transition
 			$this->db->beginTransaction();
 
-			$pack = $this->find($packId);
+			if(! $this->isPackExists($packId)) throw new Exceptions\InvalidInputException('No such pack exists');
 
 			$subscriptionPeriod = $this->period->getPeriodBySubscription($subscriptionId);
 
@@ -72,12 +72,12 @@ class DbPackRepo implements PackRepo {
 			$this->db->commit();
 
 		}
-		catch(\Exception $e)
+		catch(PDOException $e)
 		{
 			//rollback if failed
 			$this->db->rollback();
 
-			throw new Exceptions\InvalidInputException;
+			throw new Exceptions\Exception;
 		}	
 	}
 
@@ -94,9 +94,9 @@ class DbPackRepo implements PackRepo {
 
 			return true;
 		}
-		catch(\Exception $e)
+		catch(PDOException $e)
 		{
-			throw new Exceptions\InvalidInputException('invalid pack id');
+			throw new Exceptions\Exception;
 		}	
 	}
 
@@ -108,15 +108,17 @@ class DbPackRepo implements PackRepo {
 				->where('id', $packId)
 				->first();
 
+			if( ! $pack) throw new Exceptions\InvalidInputException('No such pack exists');		
+
 			return $pack;
 		}
-		catch(\Exception $e)
+		catch(PDOException $e)
 		{
-			throw new Exceptions\InvalidInputException('invalid pack id');
+			throw new Exceptions\Exception;
 		}	
 	}
 
-	public function removePacksForUser($packId, $subscriptionId, $units = 1)
+	public function removePacksForUser($subscriptionId, $packId, $units = 1)
 	{
 		try
 		{
@@ -157,7 +159,7 @@ class DbPackRepo implements PackRepo {
 
 			$this->subscriber->incrementLimit($subscriptionId, $pack['feature_id'], (-1)*$units*$pack['quantity']);
 		}
-		catch(\PDOException $e)
+		catch(PDOException $e)
 		{
 			throw new Exceptions\InvalidInputException('Invalid pack');
 		}
@@ -235,31 +237,36 @@ class DbPackRepo implements PackRepo {
 
 	public function seedPackForNewPeriod($subscriptionId)
 	{
-		$packs = $this->getPacksBySubscriptionId($subscriptionId);
+		$packs = $this->getPacksBySubscription($subscriptionId);
 
 		$period = $this->period->store($subscriptionId, Carbon::today()->toDateString(), Carbon::today()->addMonth()->toDateString());
 
 		foreach ($packs as $pack) 
 		{
-			$this->db->table(Config::get('throttle::table.user_pack'))
-				->where('id', $pack['id'])
-				->update(['status' => 0]);
-				
-			$this->db->table(Config::get('throttle::tables.user_pack'))->insert([
-				'subscription_id'      => $pack['subscription_id'],
-				'pack_id'  	  	       => $pack['pack_id'],
-				'units'                => $pack['units'],
-				'status'               => 1,
-				'period_id'            => $period['id']
-			]);
+			if($pack['units'] != 0)
+			{
+				$this->db->table(Config::get('throttle::table.user_pack'))
+					->where('id', $pack['id'])
+					->update(['status' => 0]);
+					
+				$this->db->table(Config::get('throttle::tables.user_pack'))->insert([
+					'subscription_id'      => $pack['subscription_id'],
+					'pack_id'  	  	       => $pack['pack_id'],
+					'units'                => $pack['units'],
+					'status'               => 1,
+					'period_id'            => $period['id']
+				]);
+			}
 		}
 	}
 
-	private function getPacksBySubscriptionId($subscriptionId)
+	private function getPacksBySubscription($subscriptionId)
 	{
-		$packs = $this->db->table(Config::get('throttle::tables.user_pack'))
+		$packs = $this->db->table(Config::get('throttle::tables.user_pack'). ' as up')
+			->join(Config::get('throttle::tables.packs'). ' as p',  'up.pack_id', '=', 'p.id')
 			->where('subscription_id', $subscriptionId)
 			->where('status', '1')
+			->select('p.id as id', 'p.name as name', 'p.price as price', 'p.quantity as quantity', 'up.units as units')
 			->get();
 
 		return $packs;

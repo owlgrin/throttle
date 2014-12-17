@@ -4,7 +4,7 @@ use Carbon\Carbon;
 use Owlgrin\Throttle\Period\PeriodInterface;
 use Owlgrin\Throttle\Period\PeriodRepo;
 
-class ThrottlePeriod implements PeriodInterface {
+class ActiveSubscriptionPeriod implements PeriodInterface {
 
 	protected $period;
 	protected $periodRepo;

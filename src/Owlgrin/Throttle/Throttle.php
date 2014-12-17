@@ -4,7 +4,6 @@ use Owlgrin\Throttle\Biller\Biller;
 use Owlgrin\Throttle\Subscriber\SubscriberRepo as Subscriber;
 use Owlgrin\Throttle\Plan\PlanRepo as Plan;
 use Owlgrin\Throttle\Exceptions;
-use Owlgrin\Throttle\Redis\RedisStorage as Redis;
 use Owlgrin\Throttle\Pack\PackRepo;
 use Owlgrin\Throttle\Period\PeriodRepo;
 /**
@@ -15,19 +14,17 @@ class Throttle {
 	protected $biller; 
 	protected $subscriber;
 	protected $plan;
-	protected $redis;
 	protected $pack;
 	protected $periodRepo;	
 
 	protected $user = null;
 	protected $subscription = null;
 
-	public function __construct(Biller $biller, Subscriber $subscriber, Plan $plan, Redis $redis, PackRepo $pack, PeriodRepo $periodRepo)
+	public function __construct(Biller $biller, Subscriber $subscriber, Plan $plan, PackRepo $pack, PeriodRepo $periodRepo)
 	{
 		$this->biller = $biller;
 		$this->subscriber = $subscriber;
 		$this->plan = $plan;
-		$this->redis = $redis;
 		$this->pack = $pack;
 		$this->periodRepo = $periodRepo;
 	}
@@ -60,53 +57,79 @@ class Throttle {
 		return $this->features;
 	}
 
+	public function getPeriod()
+	{
+		return $this->period;
+	}
+
 	//subscribes a user to a specific plan
 	public function subscribe($planIdentifier, $user = null)
 	{
 		$user = is_null($user) ? $this->user : $user;
 
-		$this->subscriber->subscribe($user, $planIdentifier);
+		 if($this->subscriber->subscription($user))
+			throw new Exceptions\ForbiddenException('Subscription already exists');
 
+		$this->subscriber->subscribe($user, $planIdentifier);
+		 
 		$this->user($user);
 	}
 
 	//unsubscribes a user to a specific plan
 	public function unsubscribe($planIdentifier)
 	{
+		if(is_null($this->subscription))
+			throw new Exceptions\ForbiddenException('No Subscription exists');
+
 		return $this->subscriber->unsubscribe($this->user);
 	}
 	
 	public function usage()
 	{
+		if(is_null($this->subscription))
+			throw new Exceptions\ForbiddenException('No Subscription exists');
+
 		return $this->subscriber->getUserUsage($this->subscription['subscription_id'], $this->period['starts_at'], $this->period['ends_at']);
 	}
 
-	public function period($startDate, $endDate)
+	public function setPeriod(PeriodInterface $period)
 	{
-		$this->periodRepo->store($this->subscription['subscription_id'], $startDate, $endDate);
+		return $this->period = ['starts_at' => $period->start(), 'ends_at' -> $period->end()];
+	}
+
+	public function addPeriod(PeriodInterface $period)
+	{
+		if(is_null($this->subscription))
+			throw new Exceptions\ForbiddenException('No Subscription exists');
+
+		$this->periodRepo->unsetPeriod($this->subscription['subscription_id']);
+
+		$this->periodRepo->store($this->subscription['subscription_id'], $period->start(), $period->end());
 
 		return $this->user($this->user);
 	}
 
-	public function updatePeriod($startDate, $endDate)
-	{
-		$this->periodRepo->unsetPeriod($this->subscription['subscription_id']);
-
-		$this->period($startDate, $endDate);
-	}
-
 	public function attempt($identifier, $count = 1)
 	{
+		if(is_null($this->subscription))
+			throw new Exceptions\ForbiddenException('No Subscription exists');
+
 		$this->subscriber->attempt($this->subscription['subscription_id'], $identifier, $count, $this->period['starts_at'], $this->period['ends_at']);
 	}
 
 	public function softAttempt($identifier, $count = 1)
 	{
+		if(is_null($this->subscription))
+			throw new Exceptions\ForbiddenException('No Subscription exists');
+
 		return $this->subscriber->softAttempt($this->subscription['subscription_id'], $identifier, $count, $this->period['starts_at'], $this->period['ends_at']);
 	}
 
 	public function bill()
 	{
+		if(is_null($this->subscription))
+			throw new Exceptions\ForbiddenException('No Subscription exists');
+
 		return $this->biller->bill($this->user, $this->period['starts_at'], $this->period['ends_at']);
 	}
 
@@ -118,6 +141,9 @@ class Throttle {
 	//increments usage of a particular identifier
 	public function increment($identifier, $quantity = 1)
 	{
+		if(is_null($this->subscription))
+			throw new Exceptions\ForbiddenException('No Subscription exists');
+
 		return $this->subscriber->increment($this->subscription['subscription_id'], $identifier, $quantity);
 	}
 
@@ -132,13 +158,27 @@ class Throttle {
 		return $this->plan->add($plan);
 	}
 
+	public function getPacks()
+	{
+		if(is_null($this->subscription))
+			throw new Exceptions\ForbiddenException('No Subscription exists');
+
+		$this->pack->getPacksForSubscription($this->subscription['subscription_id']);
+	}
+
 	public function addPack($packId, $units)
 	{
-		$this->pack->addPackForUser($packId, $this->subscription['subscription_id'], $units);
+		if(is_null($this->subscription))
+			throw new Exceptions\ForbiddenException('No Subscription exists');
+
+		$this->pack->addPackForUser($this->subscription['subscription_id'], $packId, $units);
 	}
 
 	public function removePack($packId, $units)
 	{
-		$this->pack->removePacksForUser($packId, $this->subscription['subscription_id'], $units);
+		if(is_null($this->subscription))
+			throw new Exceptions\ForbiddenException('No Subscription exists');
+
+		$this->pack->removePacksForUser($this->subscription['subscription_id'], $packId, $units);
 	}
 }
