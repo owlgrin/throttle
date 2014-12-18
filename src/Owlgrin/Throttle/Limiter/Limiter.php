@@ -29,7 +29,7 @@ class Limiter implements LimiterInterface {
 
 			$limit = $this->subscriberRepo->left($subscriptionId, $identifier, $start, $end);
 
-			if( ! $this->isHardLimitAllowed($limit, $count))
+			if( ! $this->hasAvailableQuota($limit, $count))
 			{
 				throw new Exceptions\LimitExceededException;
 			}
@@ -61,14 +61,14 @@ class Limiter implements LimiterInterface {
 
 			$limit = $this->subscriberRepo->left($subscriptionId, $identifier, $start, $end);
 
-			$incrementCount = $this->isSoftLimitAllowed($limit, $count);
+			$availableQuota = $this->getAvailableQuota($limit, $count);
 
-			$this->subscriberRepo->increment($subscriptionId, $identifier, $incrementCount);	
+			$this->subscriberRepo->increment($subscriptionId, $identifier, $availableQuota);	
 
 			//commition the work after processing
 			$this->db->commit();	
 
-			return $incrementCount;
+			return $availableQuota;
 		}
 		catch(PDOException $e)
 		{
@@ -79,9 +79,9 @@ class Limiter implements LimiterInterface {
 		}
 	}
 
-	private function isSoftLimitAllowed($limitLeft, $countRequested)
+	private function getAvailableQuota($limitLeft, $countRequested)
 	{
-		if(! $this->checkIfNull($limitLeft) )
+		if( ! is_null($limitLeft))
 		{
 			return $limitLeft >= $countRequested ? $countRequested : $limitLeft;
 		}
@@ -89,16 +89,11 @@ class Limiter implements LimiterInterface {
 		return $countRequested;
 	}
 
-	private function isHardLimitAllowed($limitLeft, $countRequested)
+	private function hasAvailableQuota($limitLeft, $countRequested)
 	{
-		if(! $this->checkIfNull($limitLeft) )
+		if( ! is_null($limitLeft))
 			return $limitLeft >= $countRequested;
 		
 		return true;
-	}
-
-	private function checkIfNull($limit)
-	{
-		return is_null($limit);
 	}
 }
