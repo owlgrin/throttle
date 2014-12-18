@@ -144,7 +144,7 @@ class Throttle {
 	}
 
 	//increments usage of a particular identifier
-	public function increment($identifier, $quantity = 1)
+	public function hit($identifier, $quantity = 1)
 	{
 		if(is_null($this->subscription))
 			throw new Exceptions\ForbiddenException('No Subscription exists');
@@ -155,10 +155,7 @@ class Throttle {
 	//increments usage of a particular identifier
 	public function redeem($identifier, $quantity = 1)
 	{
-		if(is_null($this->subscription))
-			throw new Exceptions\ForbiddenException('No Subscription exists');
-
-		return $this->increment($identifier, -$quantity);
+		return $this->hit($identifier, -1 * $quantity);
 	}
 	
 	public function plan($plan)
