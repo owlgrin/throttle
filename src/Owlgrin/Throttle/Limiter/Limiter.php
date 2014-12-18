@@ -31,7 +31,7 @@ class Limiter implements LimiterInterface {
 
 			if( ! $this->hasAvailableQuota($limit, $count))
 			{
-				throw new Exceptions\LimitExceededException;
+				throw new Exceptions\LimitExceededException('Your limit of :attributes has been excedeed', ['attributes' => $identifier]);
 			}
 
 			$this->subscriberRepo->increment($subscriptionId, $identifier, $count);
@@ -39,16 +39,12 @@ class Limiter implements LimiterInterface {
 			//commition the work after processing
 			$this->db->commit();
 		}
-		catch(Exceptions\LimitExceededException $e)
-		{
-			throw new Exceptions\LimitExceededException;
-		}
 		catch(PDOException $e)
 		{
 			//rollback if failed
 			$this->db->rollback();
 
-			throw new Exceptions\MySqlExceptrion("Something went wrong with database");	
+			throw new Exceptions\InternalException("Something went wrong with database");	
 		}
 	}
 
@@ -75,7 +71,7 @@ class Limiter implements LimiterInterface {
 			//rollback if failed
 			$this->db->rollback();
 
-			throw new Exceptions\MySqlExceptrion("Something went wrong with database");	
+			throw new Exceptions\InternalException("Something went wrong with database");	
 		}
 	}
 

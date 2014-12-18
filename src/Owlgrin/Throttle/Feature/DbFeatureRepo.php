@@ -27,19 +27,22 @@ class DbFeatureRepo implements FeatureRepo {
 				->where('feature_id', $featureId)
 				->get();
 		}
-		catch(Exception $e)
-		{
-			throw new Exceptions\InternalExceptrion("Something went wrong");	
-		}
 		catch(PDOException $e)
 		{
-			throw new Exceptions\MySqlExceptrion("Something went wrong with database");	
+			throw new Exceptions\InternalException("Something went wrong with database");	
 		}
 	}
 
 	public function getAllFeatures()
 	{
-		return $this->db->table(Config::get('throttle::tables.features'))
-			->get();
+		try
+		{
+			return $this->db->table(Config::get('throttle::tables.features'))
+				->get();
+		}
+		catch(PDOException $e)
+		{
+			throw new Exceptions\InternalException("Something went wrong with database");	
+		}	
 	}
 }

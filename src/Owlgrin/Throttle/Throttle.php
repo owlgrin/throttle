@@ -71,7 +71,7 @@ class Throttle {
 		$user = is_null($user) ? $this->user : $user;
 
 		 if($this->subscriber->subscription($user))
-			throw new Exceptions\ForbiddenException('Subscription already exists');
+			throw new Exceptions\InternalException('Subscription already exists');
 
 		$this->subscriber->subscribe($user, $planIdentifier);
 		 
@@ -82,19 +82,11 @@ class Throttle {
 	public function unsubscribe($planIdentifier)
 	{
 		if(is_null($this->subscription))
-			throw new Exceptions\ForbiddenException('No Subscription exists');
+			throw new Exceptions\SubscriptionException('No Subscription exists');
 
 		return $this->subscriber->unsubscribe($this->user);
 	}
 	
-	public function usage()
-	{
-		if(is_null($this->subscription))
-			throw new Exceptions\ForbiddenException('No Subscription exists');
-
-		return $this->subscriber->getUserUsage($this->subscription['subscription_id'], $this->period['starts_at'], $this->period['ends_at']);
-	}
-
 	public function setPeriod(PeriodInterface $period)
 	{
 		$this->period = ['starts_at' => $period->start(), 'ends_at' => $period->end()];
@@ -105,7 +97,7 @@ class Throttle {
 	public function addPeriod(PeriodInterface $period)
 	{
 		if(is_null($this->subscription))
-			throw new Exceptions\ForbiddenException('No Subscription exists');
+			throw new Exceptions\SubscriptionException('No Subscription exists');
 
 		$this->periodRepo->unsetPeriod($this->subscription['subscription_id']);
 
@@ -117,7 +109,7 @@ class Throttle {
 	public function attempt($identifier, $count = 1)
 	{
 		if(is_null($this->subscription))
-			throw new Exceptions\ForbiddenException('No Subscription exists');
+			throw new Exceptions\SubscriptionException('No Subscription exists');
 
 		$this->limiter->attempt($this->subscription['subscription_id'], $identifier, $count, $this->period['starts_at'], $this->period['ends_at']);
 	}
@@ -125,7 +117,7 @@ class Throttle {
 	public function softAttempt($identifier, $count = 1)
 	{
 		if(is_null($this->subscription))
-			throw new Exceptions\ForbiddenException('No Subscription exists');
+			throw new Exceptions\SubscriptionException('No Subscription exists');
 
 		return $this->limiter->softAttempt($this->subscription['subscription_id'], $identifier, $count, $this->period['starts_at'], $this->period['ends_at']);
 	}
@@ -133,7 +125,7 @@ class Throttle {
 	public function bill()
 	{
 		if(is_null($this->subscription))
-			throw new Exceptions\ForbiddenException('No Subscription exists');
+			throw new Exceptions\SubscriptionException('No Subscription exists');
 
 		return $this->biller->bill($this->user, $this->period['starts_at'], $this->period['ends_at']);
 	}
@@ -147,7 +139,7 @@ class Throttle {
 	public function hit($identifier, $quantity = 1)
 	{
 		if(is_null($this->subscription))
-			throw new Exceptions\ForbiddenException('No Subscription exists');
+			throw new Exceptions\SubscriptionException('No Subscription exists');
 
 		return $this->subscriber->increment($this->subscription['subscription_id'], $identifier, $quantity);
 	}
@@ -158,7 +150,7 @@ class Throttle {
 		return $this->hit($identifier, -1 * $quantity);
 	}
 	
-	public function plan($plan)
+	public function addPlan($plan)
 	{
 		return $this->plan->add($plan);
 	}
@@ -166,7 +158,7 @@ class Throttle {
 	public function getPacks()
 	{
 		if(is_null($this->subscription))
-			throw new Exceptions\ForbiddenException('No Subscription exists');
+			throw new Exceptions\SubscriptionException('No Subscription exists');
 
 		$this->pack->getPacksForSubscription($this->subscription['subscription_id']);
 	}
@@ -174,7 +166,7 @@ class Throttle {
 	public function addPack($packId, $units)
 	{
 		if(is_null($this->subscription))
-			throw new Exceptions\ForbiddenException('No Subscription exists');
+			throw new Exceptions\SubscriptionException('No Subscription exists');
 
 		$this->pack->addPackForUser($this->subscription['subscription_id'], $packId, $units);
 	}
@@ -182,7 +174,7 @@ class Throttle {
 	public function removePack($packId, $units)
 	{
 		if(is_null($this->subscription))
-			throw new Exceptions\ForbiddenException('No Subscription exists');
+			throw new Exceptions\SubscriptionException('No Subscription exists');
 
 		$this->pack->removePacksForUser($this->subscription['subscription_id'], $packId, $units);
 	}

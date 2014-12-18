@@ -1,11 +1,13 @@
 <?php namespace Owlgrin\Throttle\Exceptions;
 
-class PlanExpiredException extends Exception {
+use Illuminate\Support\MessageBag;
+
+class SubscriptionException extends Exception {
 
 	/**
 	 * Message
 	 */
-	const MESSAGE = 'throttle::responses.message.plan_expired';
+	const MESSAGE = 'throttle::responses.message.not_subscribed';
 
 	/**
 	 * Code

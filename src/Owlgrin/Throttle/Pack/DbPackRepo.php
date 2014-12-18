@@ -36,7 +36,7 @@ class DbPackRepo implements PackRepo {
 		}
 		catch(PDOException $e)
 		{
-			throw new Exceptions\MySqlExceptrion("Something went wrong with database");	
+			throw new Exceptions\InternalException("Something went wrong with database");	
 		}
 	}
 
@@ -75,7 +75,7 @@ class DbPackRepo implements PackRepo {
 			//rollback if failed
 			$this->db->rollback();
 
-			throw new Exceptions\MySqlExceptrion("Something went wrong with database");	
+			throw new Exceptions\InternalException("Something went wrong with database");	
 		}	
 	}
 
@@ -105,7 +105,7 @@ class DbPackRepo implements PackRepo {
 		}
 		catch(PDOException $e)
 		{
-			throw new Exceptions\MySqlExceptrion("Something went wrong with database");	
+			throw new Exceptions\InternalException("Something went wrong with database");	
 		}	
 	}
 
@@ -161,7 +161,7 @@ class DbPackRepo implements PackRepo {
 			//rollback if failed
 			$this->db->rollback();
 			
-			throw new Exceptions\MySqlExceptrion("Something went wrong with database");	
+			throw new Exceptions\InternalException("Something went wrong with database");	
 		}
 	}
 
@@ -182,7 +182,7 @@ class DbPackRepo implements PackRepo {
 		}
 		catch(PDOException $e)
 		{
-			throw new Exceptions\MySqlExceptrion("Something went wrong with database");	
+			throw new Exceptions\InternalException("Something went wrong with database");	
 		}
 	}
 
@@ -199,7 +199,7 @@ class DbPackRepo implements PackRepo {
 		}
 		catch(PDOException $e)
 		{
-			throw new Exceptions\MySqlExceptrion("Something went wrong with database");	
+			throw new Exceptions\InternalException("Something went wrong with database");	
 		}
 	}
 
@@ -215,7 +215,7 @@ class DbPackRepo implements PackRepo {
 		}
 		catch(PDOException $e)
 		{
-			throw new Exceptions\MySqlExceptrion("Something went wrong with database");	
+			throw new Exceptions\InternalException("Something went wrong with database");	
 		}
 	}
 
@@ -233,7 +233,7 @@ class DbPackRepo implements PackRepo {
 		}
 		catch(PDOException $e)
 		{
-			throw new Exceptions\MySqlExceptrion("Something went wrong with database");	
+			throw new Exceptions\InternalException("Something went wrong with database");	
 		}
 	}
 
@@ -252,7 +252,7 @@ class DbPackRepo implements PackRepo {
 		}
 		catch(PDOException $e)
 		{
-			throw new Exceptions\MySqlExceptrion("Something went wrong with database");	
+			throw new Exceptions\InternalException("Something went wrong with database");	
 		}
 	}
 
@@ -265,7 +265,7 @@ class DbPackRepo implements PackRepo {
 		}
 		catch(PDOException $e)
 		{
-			throw new Exceptions\MySqlExceptrion("Something went wrong with database");	
+			throw new Exceptions\InternalException("Something went wrong with database");	
 		}
 	}
 
@@ -306,7 +306,7 @@ class DbPackRepo implements PackRepo {
 			//rollback if failed
 			$this->db->rollback();
 
-			throw new Exceptions\MySqlExceptrion("Something went wrong with database");
+			throw new Exceptions\InternalException("Something went wrong with database");
 		}
 	}
 
@@ -323,7 +323,7 @@ class DbPackRepo implements PackRepo {
 		}
 		catch(PDOException $e)
 		{
-			throw new Exceptions\MySqlExceptrion("Something went wrong with database");	
+			throw new Exceptions\InternalException("Something went wrong with database");	
 		}
 	}
 }

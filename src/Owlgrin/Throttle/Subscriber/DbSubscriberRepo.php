@@ -62,7 +62,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 			//rollback if failed
 			$this->db->rollback();
 
-			throw new Exceptions\MySqlExceptrion("Something went wrong with database");	
+			throw new Exceptions\InternalException("Something went wrong with database");	
 		}
 	}
 
@@ -81,7 +81,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 			//rollback if failed
 			$this->db->rollback();
 
-			throw new Exceptions\MySqlExceptrion("Something went wrong with database");	
+			throw new Exceptions\InternalException("Something went wrong with database");	
 		}
 	}
 
@@ -105,7 +105,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 		}
 		catch(PDOException $e)
 		{
-			throw new Exceptions\MySqlExceptrion("Something went wrong with database");	
+			throw new Exceptions\InternalException("Something went wrong with database");	
 		}
 	}
 
@@ -135,103 +135,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 		}
 		catch(PDOException $e)
 		{
-			throw new Exceptions\MySqlExceptrion("Something went wrong with database");	
-		}
-	}
-
-	//increments usage of a feature by featureid
-	public function incrementUsage($subscriptionId, $featureId, $incrementCount = 1)
-	{
-		try
-		{
-			if(! $this->checkFeatureLimit($subscriptionId, $featureId, $incrementCount))
-			{
-				throw new Exceptions\LimitExceededException;
-			}			
-
-			$today = Carbon::today()->toDateString();
-			$update = $this->db->table(Config::get('throttle::tables.user_feature_usage'))
-				->where('subscription_id', $subscriptionId)
-				->where('feature_id', $featureId)
-				->where('date', $today)
-				->increment('used_quantity', $incrementCount);
-
-			if($update == 0)
-			{
-				$this->addUsageByFeatureId($subscriptionId, $featureId, $incrementCount);		
-			}
-		}
-		catch(Exceptions\LimitExceededException $e)
-		{
-	        throw new Exceptions\InternalException('exceptions.repo.unknown');
-		}
-		catch(PDOException $e)
-		{
-			throw new Exceptions\MySqlExceptrion("Something went wrong with database");	
-		}
-	}
-
-	//check whether a user can access a feature or not by featureId
-	public function checkFeatureLimit($subscriptionId, $featureId, $incrementCount)
-	{
-		try
-		{
-			$limit = $this->db->table(Config::get('throttle::tables.user_feature_usage').' AS ufu')
-				->join(Config::get('throttle::tables.user_feature_limit').' as ufl', function($join)
-				{
-					$join->on('ufu.subscription_id', '=', 'ufl.subscription_id');
-					$join->on('ufu.feature_id', '=', 'ufl.feature_id');
-				})
-				->where('ufu.subscription_id', $subscriptionId)
-				->where('ufu.feature_id', $featureId)
-				->select($this->db->raw('sum( ufu.used_quantity ) AS used, ufl.limit AS fLimit'))
-				->first();
-	
-			if(! is_null($limit->fLimit))
-			{
-				return $limit->fLimit > $limit->used+$incrementCount;
-			}
-
-			return true;
-		}
-		catch(PDOException $e)
-		{
-			throw new Exceptions\MySqlExceptrion("Something went wrong with database");	
-		}
-	}
-	
-	//manually adds usage of a subsription 
-	private function addUsageByFeatureId($subscriptionId, $featureId, $usedQuantity)
-	{
-		try
-		{
-			$this->db->table(Config::get('throttle::tables.user_feature_usage'))->insert(
-			[
-				'subscription_id' 	=> $subscriptionId,
-				'feature_id'    	=> $featureId,
-				'used_quantity' 	=> $usedQuantity,
-				'date'    			=> $this->db->raw('now()')
-			]);			
-		}
-		catch(PDOException $e)
-		{
-			throw new Exceptions\MySqlExceptrion("Something went wrong with database");	
-		}
-	}
-
-	//manually setts limit of a subscription
-	public function setLimit($subscriptionId, $featureId, $limit)
-	{
-		try
-		{
-			$this->db->table(Config::get('throttle::tables.user_feature_limit'))
-				->where('subscription_id', $subscriptionId)
-				->where('feature_id', $featureId)
-				->update(['limit' => $limit]);
-		}
-		catch(PDOException $e)
-		{
-			throw new Exceptions\MySqlExceptrion("Something went wrong with database");	
+			throw new Exceptions\InternalException("Something went wrong with database");	
 		}
 	}
 
@@ -247,7 +151,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 		}
 		catch(PDOException $e)
 		{
-			throw new Exceptions\MySqlExceptrion("Something went wrong with database");	
+			throw new Exceptions\InternalException("Something went wrong with database");	
 		}
 	}
 
@@ -270,23 +174,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 		}
 		catch(PDOException $e)
 		{
-			throw new Exceptions\MySqlExceptrion("Something went wrong with database");	
-		}
-	}
-
-	//returns usage of the user
-	public function getLimit($subscriptionId)
-	{
-		try
-		{
-			return $this->db->table(Config::get('throttle::tables.user_feature_limit').' as tfl')
-				->join(Config::get('throttle::tables.features').' as f','f.id', '=', 'tfl.feature_id')
-				->select(\DB::raw('f.identifier as identifier, tfl.limit'))
-				->get();
-		}
-		catch(PDOException $e)
-		{
-			throw new Exceptions\MySqlExceptrion("Something went wrong with database");	
+			throw new Exceptions\InternalException("Something went wrong with database");	
 		}
 	}
 
@@ -303,40 +191,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 		}
 		catch(PDOException $e)
 		{
-			throw new Exceptions\MySqlExceptrion("Something went wrong with database");	
-		}
-	}
-
-	//check whether a user can access a feature or not by identifier
-	public function can($subscriptionId, $identifier, $incrementCount)
-	{
-		try
-		{
-			$limit = $this->db->table(Config::get('throttle::tables.user_feature_usage').' AS ufu')
-				->join(Config::get('throttle::tables.user_feature_limit').' as ufl', function($join)
-				{
-					$join->on('ufu.subscription_id', '=', 'ufl.subscription_id');
-					$join->on('ufu.feature_id', '=', 'ufl.feature_id');
-				})
-				->join(Config::get('throttle::tables.features').' as f', function($join)
-				{
-					$join->on('f.id', '=', 'ufu.feature_id');
-				})
-				->where('ufu.subscription_id', $subscriptionId)
-				->where('f.identifier', $identifier)
-				->select($this->db->raw('sum( ufu.used_quantity ) AS used, ufl.limit AS fLimit'))
-				->first();
-
-			if(! is_null($limit['fLimit']))
-			{
-				return $limit['fLimit'] >= $limit['used']+$incrementCount;
-			}
-
-			return true;
-		}
-		catch(PDOException $e)
-		{
-			throw new Exceptions\MySqlExceptrion("Something went wrong with database");	
+			throw new Exceptions\InternalException("Something went wrong with database");	
 		}
 	}
 
@@ -359,13 +214,9 @@ class DbSubscriberRepo implements SubscriberRepo {
 				$this->addUsageByFeatureIdentifier($subscriptionId, $identifier, $count);
 			}
 		}
-		catch(Exceptions\LimitExceededException $e)
-		{
-			throw new Exceptions\LimitExceededException;
-		}
 		catch(PDOException $e)
 		{
-			throw new Exceptions\MySqlExceptrion("Something went wrong with database");	
+			throw new Exceptions\InternalException("Something went wrong with database");	
 		}
 	}
 
@@ -385,7 +236,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 		}
 		catch(PDOException $e)
 		{
-			throw new Exceptions\MySqlExceptrion("Something went wrong with database");	
+			throw new Exceptions\InternalException("Something went wrong with database");	
 		}
 	}
 
@@ -420,80 +271,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 		}
 		catch(PDOException $e)
 		{
-			throw new Exceptions\MySqlExceptrion("Something went wrong with database");	
-		}
-	}
-
-	public function findLeftUsages($subscriptionId, $identifier, $startDate, $endDate)
-	{
-		try
-		{
-			return $this->db->table(Config::get('throttle::tables.user_feature_usage').' AS ufu')
-				->join(Config::get('throttle::tables.features').' as f', function($join)
-				{
-					$join->on('f.id', '=', 'ufu.feature_id');
-				})
-				->where('ufu.subscription_id', $subscriptionId)
-				->where('f.identifier', $identifier)
-				->whereBetween('date', [$startDate, $endDate])
-				->select($this->db->raw('ifnull(sum( ufu.used_quantity ), 0) AS used'))
-				->first();
-		}
-		catch(PDOException $e)
-		{
-			throw new Exceptions\MySqlExceptrion("Something went wrong with database");	
-		}
-	}
-
-	public function getUserUsage($subscriptionId, $startDate, $endDate)
-	{	
-		try
-		{
-			return $this->db->table(Config::get('throttle::tables.user_feature_limit') .' as ufl')
-				->leftJoin(Config::get('throttle::tables.features'). ' as f', 'ufl.feature_id', '=', 'f.id')
-				->leftJoin(Config::get('throttle::tables.user_feature_usage'). ' as ufu', 'ufl.feature_id', '=', 'ufu.feature_id')
-				->where('ufl.subscription_id', $subscriptionId)
-				->whereBetween('ufu.date', [$startDate, $endDate])
-				->select(\DB::raw('f.id as feature_id, f.identifier as feature_identifier, f.name as feature_name, ufl.limit as feature_limit, SUM(ufu.used_quantity) as feature_usage'))
-				->groupBy('ufu.feature_id')
-				->get();
-		}
-		catch(PDOException $e)
-		{
-			throw new Exceptions\MySqlExceptrion("Something went wrong with database");	
-		}
-	}
-
-	public function getUserFeaturesLimit($subscriptionId)
-	{
-		try
-		{
-			return $this->db->table(Config::get('throttle::tables.user_feature_limit') .' as ufl')
-				->join(Config::get('throttle::tables.features'). ' as f', 'ufl.feature_id', '=', 'f.id')
-				->where('subscription_id', $subscriptionId)
-				->select('f.id as feature_id', 'f.name as feature_name', 'ufl.limit as feature_limit')
-				->get();
-		}
-		catch(PDOException $e)
-		{
-			throw new Exceptions\MySqlExceptrion("Something went wrong with database");	
-		}
-	}
-
-	//returns usage of the user
-	public function getLimitByIdentifier($subscriptionId, $identifier)
-	{
-		try
-		{
-			return $this->db->table(Config::get('throttle::tables.user_feature_limit').' as tfl')
-				->join(Config::get('throttle::tables.features').' as f','f.id', '=', 'tfl.feature_id')
-				->where('f.identifier', $identifier) 
-				->select('tfl.limit')
-				->first();
-		}
-		catch(PDOException $e)
-		{
-			throw new Exceptions\MySqlExceptrion("Something went wrong with database");	
+			throw new Exceptions\InternalException("Something went wrong with database");	
 		}
 	}
 
@@ -512,7 +290,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 		}
 		catch(PDOException $e)
 		{
-			throw new Exceptions\MySqlExceptrion("Something went wrong with database");	
+			throw new Exceptions\InternalException("Something went wrong with database");	
 		}
 	}
 }
