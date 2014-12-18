@@ -69,14 +69,29 @@ class DbPlanRepo implements PlanRepo {
 	}
 
 
-	private function addFeature($name, $identifier)
+	public function addFeature($name, $identifier)
 	{
-		$featureId = $this->db->table(Config::get('throttle::tables.features'))->insertGetId([
-			'name' => $name,
-			'identifier' => $identifier
-		]);
+		$featureId = $this->ifFeatureExists($identifier);
 
-		return $featureId;
+		if( ! $featureId)
+		{	
+			$featureId = $this->db->table(Config::get('throttle::tables.features'))->insertGetId([
+				'name' => $name,
+				'identifier' => $identifier
+			]);
+		}
+
+		return (int) $featureId;
+	}
+
+	private function ifFeatureExists($identifier)
+	{
+		$feature = $this->db->table(Config::get('throttle::tables.features'))
+			->where('identifier', $identifier)
+			->select('id')
+			->first();
+
+		return $feature['id'];
 	}
 
 	private function addPlanFeature($planId, $featureId, $rate, $perQuantity, $tier, $limit)
@@ -124,9 +139,4 @@ class DbPlanRepo implements PlanRepo {
 				->get();
 	}
 
-	public function getAllFeatures()
-	{
-		return $this->db->table(Config::get('throttle::tables.features'))
-			->get();
-	}
 }

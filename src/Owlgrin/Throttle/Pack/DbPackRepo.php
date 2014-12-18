@@ -7,7 +7,7 @@ use Owlgrin\Throttle\Exceptions;
 use Owlgrin\Throttle\Period\PeriodInterface;
 use Owlgrin\Throttle\Period\PeriodRepo;
 
-use PDOException, Config, Carbon\Carbon;
+use PDOException, Exception, Config, Carbon\Carbon;
 
 class DbPackRepo implements PackRepo {
 
@@ -26,19 +26,17 @@ class DbPackRepo implements PackRepo {
 	{
 		try
 		{
-			$packId = $this->db->table(Config::get('throttle::tables.packs'))->insertGetId([
+			return $this->db->table(Config::get('throttle::tables.packs'))->insertGetId([
 				'name' 		  => $pack['name'],
 				'plan_id'  	  => $pack['plan_id'],
 				'feature_id'  => $pack['feature_id'],
 				'price'       => $pack['price'],
 				'quantity'    => $pack['quantity']
 			]);
-
-			return $packId;
 		}
 		catch(PDOException $e)
 		{
-			throw new Exceptions\Exception;
+			throw new Exceptions\MySqlExceptrion("Something went wrong with database");	
 		}
 	}
 
@@ -53,6 +51,7 @@ class DbPackRepo implements PackRepo {
 
 			$subscriptionPeriod = $this->period->getPeriodBySubscription($subscriptionId);
 
+			//updates packs for user
 			$packForUser = $this->updatePackForUser($subscriptionId, $packId, $units, $subscriptionPeriod['id']);
 
 			if(! $packForUser)
@@ -70,34 +69,26 @@ class DbPackRepo implements PackRepo {
 
 			//commition the work after processing
 			$this->db->commit();
-
 		}
 		catch(PDOException $e)
 		{
 			//rollback if failed
 			$this->db->rollback();
 
-			throw new Exceptions\Exception;
+			throw new Exceptions\MySqlExceptrion("Something went wrong with database");	
 		}	
 	}
 
 	private function isPackExists($packId)
 	{
-		try
+		$pack = $this->find($packId);
+
+		if($pack === null)
 		{
-			$pack = $this->find($packId);
-
-			if($pack === null)
-			{
-				return false;
-			}
-
-			return true;
+			return false;
 		}
-		catch(PDOException $e)
-		{
-			throw new Exceptions\Exception;
-		}	
+
+		return true;	
 	}
 
 	public function find($packId)
@@ -114,7 +105,7 @@ class DbPackRepo implements PackRepo {
 		}
 		catch(PDOException $e)
 		{
-			throw new Exceptions\Exception;
+			throw new Exceptions\MySqlExceptrion("Something went wrong with database");	
 		}	
 	}
 
@@ -122,6 +113,9 @@ class DbPackRepo implements PackRepo {
 	{
 		try
 		{
+			//starting a transition
+			$this->db->beginTransaction();
+
 			$pack = $this->find($packId);
 
 			if( ! $this->isPackExistsForUser($subscriptionId, $packId, $units))
@@ -158,117 +152,178 @@ class DbPackRepo implements PackRepo {
 			}
 
 			$this->subscriber->incrementLimit($subscriptionId, $pack['feature_id'], (-1)*$units*$pack['quantity']);
+		
+			//commition the work after processing
+			$this->db->commit();
 		}
 		catch(PDOException $e)
 		{
-			throw new Exceptions\InvalidInputException('Invalid pack');
+			//rollback if failed
+			$this->db->rollback();
+			
+			throw new Exceptions\MySqlExceptrion("Something went wrong with database");	
 		}
 	}
 
 	private function isPackExistsForUser($subscriptionId, $packId, $units)
 	{
-		$pack = $this->db->table(Config::get('throttle::tables.user_pack'))
-				->where('pack_id', $packId)
-				->where('subscription_id', $subscriptionId)
-				->where('units', '>=', $units)
-				->where('status', '1')
-				->first();
+		try
+		{
+			$pack = $this->db->table(Config::get('throttle::tables.user_pack'))
+					->where('pack_id', $packId)
+					->where('subscription_id', $subscriptionId)
+					->where('units', '>=', $units)
+					->where('status', '1')
+					->first();
 
-		if($pack) return true;
+			if($pack) return true;
 
-		return false;
+			return false;
+		}
+		catch(PDOException $e)
+		{
+			throw new Exceptions\MySqlExceptrion("Something went wrong with database");	
+		}
 	}
 
 	private function updatePackForUser($subscriptionId, $packId, $units, $periodId)
 	{
-		$increment = $this->db->table(Config::get('throttle::tables.user_pack'))
+		try
+		{
+			return $this->db->table(Config::get('throttle::tables.user_pack'))
 				->where('pack_id', $packId)
 				->where('subscription_id', $subscriptionId)
 				->where('period_id', $periodId)
 				->where('status', '1')
 				->increment('units', $units);
-
-		return $increment;
+		}
+		catch(PDOException $e)
+		{
+			throw new Exceptions\MySqlExceptrion("Something went wrong with database");	
+		}
 	}
 
 	private function getPackBySubscriptionId($subscriptionId, $packId)
 	{
-		$pack = $this->db->table(Config::get('throttle::tables.user_pack'))
+		try
+		{
+			return $this->db->table(Config::get('throttle::tables.user_pack'))
 				->where('pack_id', $packId)
 				->where('subscription_id', $subscriptionId)
 				->where('status', '1')
 				->first();
-
-		return $pack;
+		}
+		catch(PDOException $e)
+		{
+			throw new Exceptions\MySqlExceptrion("Something went wrong with database");	
+		}
 	}
 
 	public function getPacksForSubscriptionFeature($subscriptionId, $featureId)
 	{
-		$pack = $this->db->table(Config::get('throttle::tables.user_pack').' as up')
+		try
+		{
+			return $this->db->table(Config::get('throttle::tables.user_pack').' as up')
 				->join(Config::get('throttle::tables.packs').' as p', 'p.id', '=', 'up.pack_id')
 				->where('p.feature_id', $featureId)
 				->where('up.status', '1')
 				->where('up.subscription_id', $subscriptionId)
 				->select('p.id', 'p.price', 'up.units', 'p.quantity')
 				->get();
-				
-		return $pack;
+		}
+		catch(PDOException $e)
+		{
+			throw new Exceptions\MySqlExceptrion("Something went wrong with database");	
+		}
 	}
 
 	public function isValidPackForUser($subscriptionId, $packId)
 	{
-		$limit =  $this->db->table(Config::get('throttle::tables.user_feature_limit').' as ufl')
-			->join(Config::get('throttle::tables.packs').' as p', 'p.feature_id', '=', 'ufl.feature_id')
-			->where('ufl.subscription_id', $subscriptionId)
-			->where('p.id', $packId)
-			->select('ufl.limit')
-			->first();
+		try
+		{
+			$limit =  $this->db->table(Config::get('throttle::tables.user_feature_limit').' as ufl')
+				->join(Config::get('throttle::tables.packs').' as p', 'p.feature_id', '=', 'ufl.feature_id')
+				->where('ufl.subscription_id', $subscriptionId)
+				->where('p.id', $packId)
+				->select('ufl.limit')
+				->first();
 
-		return ! is_null($limit);
+			return ! is_null($limit);
+		}
+		catch(PDOException $e)
+		{
+			throw new Exceptions\MySqlExceptrion("Something went wrong with database");	
+		}
 	}
 
 	public function getAllPacks()
 	{
-		$packs = $this->db->table(Config::get('throttle::tables.packs'))
-			->get();
-
-		return $packs;
+		try
+		{
+			return $this->db->table(Config::get('throttle::tables.packs'))
+				->get();
+		}
+		catch(PDOException $e)
+		{
+			throw new Exceptions\MySqlExceptrion("Something went wrong with database");	
+		}
 	}
 
 	public function seedPackForNewPeriod($subscriptionId)
 	{
-		$packs = $this->getPacksBySubscription($subscriptionId);
+		try
+		{		
+			//starting a transition
+			$this->db->beginTransaction();
 
-		$period = $this->period->store($subscriptionId, Carbon::today()->toDateString(), Carbon::today()->addMonth()->toDateString());
+			$packs = $this->getPacksBySubscription($subscriptionId);
 
-		foreach ($packs as $pack) 
-		{
-			if($pack['units'] != 0)
+			$period = $this->period->store($subscriptionId, Carbon::today()->toDateString(), Carbon::today()->addMonth()->toDateString());
+
+			foreach ($packs as $pack) 
 			{
-				$this->db->table(Config::get('throttle::table.user_pack'))
-					->where('id', $pack['id'])
-					->update(['status' => 0]);
-					
-				$this->db->table(Config::get('throttle::tables.user_pack'))->insert([
-					'subscription_id'      => $pack['subscription_id'],
-					'pack_id'  	  	       => $pack['pack_id'],
-					'units'                => $pack['units'],
-					'status'               => 1,
-					'period_id'            => $period['id']
-				]);
+				if($pack['units'] != 0)
+				{
+					$this->db->table(Config::get('throttle::table.user_pack'))
+						->where('id', $pack['id'])
+						->update(['status' => 0]);
+						
+					$this->db->table(Config::get('throttle::tables.user_pack'))->insert([
+						'subscription_id'      => $pack['subscription_id'],
+						'pack_id'  	  	       => $pack['pack_id'],
+						'units'                => $pack['units'],
+						'status'               => 1,
+						'period_id'            => $period['id']
+					]);
+				}
 			}
+
+			//commition the work after processing
+			$this->db->commit();
+		}
+		catch(PDOException $e)
+		{
+			//rollback if failed
+			$this->db->rollback();
+
+			throw new Exceptions\MySqlExceptrion("Something went wrong with database");
 		}
 	}
 
 	private function getPacksBySubscription($subscriptionId)
 	{
-		$packs = $this->db->table(Config::get('throttle::tables.user_pack'). ' as up')
-			->join(Config::get('throttle::tables.packs'). ' as p',  'up.pack_id', '=', 'p.id')
-			->where('subscription_id', $subscriptionId)
-			->where('status', '1')
-			->select('p.id as id', 'p.name as name', 'p.price as price', 'p.quantity as quantity', 'up.units as units')
-			->get();
-
-		return $packs;
+		try
+		{
+			return $this->db->table(Config::get('throttle::tables.user_pack'). ' as up')
+				->join(Config::get('throttle::tables.packs'). ' as p',  'up.pack_id', '=', 'p.id')
+				->where('subscription_id', $subscriptionId)
+				->where('status', '1')
+				->select('p.id as id', 'p.name as name', 'p.price as price', 'p.quantity as quantity', 'up.units as units')
+				->get();
+		}
+		catch(PDOException $e)
+		{
+			throw new Exceptions\MySqlExceptrion("Something went wrong with database");	
+		}
 	}
 }

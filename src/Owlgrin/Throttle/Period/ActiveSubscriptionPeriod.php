@@ -2,9 +2,10 @@
 
 use Carbon\Carbon;
 use Owlgrin\Throttle\Period\PeriodInterface;
+use Owlgrin\Throttle\Period\SetPeriodInterface;
 use Owlgrin\Throttle\Period\PeriodRepo;
 
-class ActiveSubscriptionPeriod implements PeriodInterface {
+class ActiveSubscriptionPeriod implements PeriodInterface, SetPeriodInterface {
 
 	protected $period;
 	protected $periodRepo;
@@ -34,20 +35,5 @@ class ActiveSubscriptionPeriod implements PeriodInterface {
 	public function isNewPeriod()
 	{
 		return Carbon::yesterday()->toDateString() === $this->end();
-	}	
-
-	// public function start($formatted = false)
-	// {
-	// 	return $formatted ?  Carbon::today()->startOfMonth()->toFormattedDateString() : Carbon::today()->startOfMonth()->toDateString();
-	// }
-
-	// public function end($formatted = false)
-	// {
-	// 	return $formatted ? Carbon::today()->endOfMonth()->toFormattedDateString() : Carbon::today()->endOfMonth()->toDateString();
-	// }	
-
-	// public function isNewPeriod()
-	// {
-	// 	return Carbon::today()->toDateString() === $this->start();
-	// }	
+	}
 }

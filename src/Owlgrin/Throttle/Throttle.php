@@ -6,6 +6,7 @@ use Owlgrin\Throttle\Plan\PlanRepo as Plan;
 use Owlgrin\Throttle\Exceptions;
 use Owlgrin\Throttle\Pack\PackRepo;
 use Owlgrin\Throttle\Period\PeriodRepo;
+use Owlgrin\Throttle\Limiter\LimiterInterface;
 /**
  * The Throttle core
  */
@@ -16,17 +17,19 @@ class Throttle {
 	protected $plan;
 	protected $pack;
 	protected $periodRepo;	
+	protected $limiter;
 
 	protected $user = null;
 	protected $subscription = null;
 
-	public function __construct(Biller $biller, Subscriber $subscriber, Plan $plan, PackRepo $pack, PeriodRepo $periodRepo)
+	public function __construct(Biller $biller, Subscriber $subscriber, Plan $plan, PackRepo $pack, PeriodRepo $periodRepo, LimiterInterface $limiter)
 	{
 		$this->biller = $biller;
 		$this->subscriber = $subscriber;
 		$this->plan = $plan;
 		$this->pack = $pack;
 		$this->periodRepo = $periodRepo;
+		$this->limiter = $limiter;
 	}
 
 	//sets users details at the time of initialisation
@@ -94,7 +97,9 @@ class Throttle {
 
 	public function setPeriod(PeriodInterface $period)
 	{
-		return $this->period = ['starts_at' => $period->start(), 'ends_at' -> $period->end()];
+		$this->period = ['starts_at' => $period->start(), 'ends_at' => $period->end()];
+
+		return $this;
 	}
 
 	public function addPeriod(PeriodInterface $period)
@@ -114,7 +119,7 @@ class Throttle {
 		if(is_null($this->subscription))
 			throw new Exceptions\ForbiddenException('No Subscription exists');
 
-		$this->subscriber->attempt($this->subscription['subscription_id'], $identifier, $count, $this->period['starts_at'], $this->period['ends_at']);
+		$this->limiter->attempt($this->subscription['subscription_id'], $identifier, $count, $this->period['starts_at'], $this->period['ends_at']);
 	}
 
 	public function softAttempt($identifier, $count = 1)
@@ -122,7 +127,7 @@ class Throttle {
 		if(is_null($this->subscription))
 			throw new Exceptions\ForbiddenException('No Subscription exists');
 
-		return $this->subscriber->softAttempt($this->subscription['subscription_id'], $identifier, $count, $this->period['starts_at'], $this->period['ends_at']);
+		return $this->limiter->softAttempt($this->subscription['subscription_id'], $identifier, $count, $this->period['starts_at'], $this->period['ends_at']);
 	}
 
 	public function bill()
@@ -150,6 +155,9 @@ class Throttle {
 	//increments usage of a particular identifier
 	public function redeem($identifier, $quantity = 1)
 	{
+		if(is_null($this->subscription))
+			throw new Exceptions\ForbiddenException('No Subscription exists');
+
 		return $this->increment($identifier, -$quantity);
 	}
 	
