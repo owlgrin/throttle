@@ -30,7 +30,7 @@ class DbPlanRepo implements PlanRepo {
 			//then add the plan_feature mapping
 			foreach($plan['features'] as $feature)
 			{
-				$featureId = $this->addFeature($feature['name'], $feature['identifier']);
+				$featureId = $this->addFeature($feature['name'], $feature['identifier'], array_get($feature, 'aggregator', 'sum'));
 				
 				foreach($feature['tier'] as $index => $tier)
 				{
@@ -67,7 +67,7 @@ class DbPlanRepo implements PlanRepo {
 	}
 
 
-	public function addFeature($name, $identifier)
+	public function addFeature($name, $identifier, $aggregator = 'sum')
 	{
 		try
 		{	
@@ -77,7 +77,8 @@ class DbPlanRepo implements PlanRepo {
 			{	
 				$featureId = $this->db->table(Config::get('throttle::tables.features'))->insertGetId([
 					'name' => $name,
-					'identifier' => $identifier
+					'identifier' => $identifier,
+					'aggregator' => $aggregator
 				]);
 			}
 
