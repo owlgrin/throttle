@@ -163,18 +163,34 @@ class DbSubscriberRepo implements SubscriberRepo {
 			//if end date is then then end date id today
 			$endDate = is_null($endDate) ? Carbon::today()->toDateTimeString(): $endDate;
 
-			return $this->db->table(Config::get('throttle::tables.user_feature_usage').' as u')
-				->join(Config::get('throttle::tables.subscriptions').' as s','s.id', '=', 'u.subscription_id')
-				->where('u.date', '>=', $startDate)
-				->where('u.date', '<=', $endDate)
-				->where('s.user_id', '=', $userId)
-				->select(\DB::raw('plan_id, feature_id, SUM(used_quantity) as used_quantity'))
-				->groupBy('feature_id')
-				->get();
+			return $this->db->select('
+					select 
+						`s`.`plan_id`, `ufu`.`feature_id`,
+						case `f`.`aggregator`
+							when \'max\' then max(`ufu`.`used_quantity`)
+							when \'sum\' then sum(`ufu`.`used_quantity`)
+						end as `used_quantity`
+					from 
+						`'.Config::get('throttle::tables.user_feature_usage').'` as `ufu` 
+						inner join `'.Config::get('throttle::tables.subscriptions').'` as `s`
+						inner join `'.Config::get('throttle::tables.features').'` as `f`
+					on
+						`s`.`id` = `ufu`.`subscription_id`
+						and `f`.`id` = `ufu`.`feature_id`
+					where
+						`ufu`.`date` >= :start_date
+						and `ufu`.`date` <= :end_date
+						and `s`.`user_id` = :user_id
+					group by `f`.`id`
+				', [
+					':start_date' => $startDate,
+					':end_date' => $endDate,
+					':user_id' => $userId
+				]);
 		}
 		catch(PDOException $e)
 		{
-			throw new Exceptions\InternalException("Something went wrong with database");	
+			throw new Exceptions\InternalException("Something went wrong with database");
 		}
 	}
 
