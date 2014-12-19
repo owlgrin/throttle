@@ -124,7 +124,7 @@ class Throttle {
 
 	public function consume($identifier, $quantity = 1)
 	{
-		$this->attempts[$identifier] - $quantity;
+		$this->attempts[$identifier] -= $quantity;
 	}
 
 	public function softAttempt($identifier, $count = 1)
