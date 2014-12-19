@@ -19,6 +19,7 @@ class Throttle {
 	protected $periodRepo;	
 	protected $limiter;
 
+	protected $attempts = [];
 	protected $user = null;
 	protected $subscription = null;
 
@@ -112,6 +113,18 @@ class Throttle {
 			throw new Exceptions\SubscriptionException('No Subscription exists');
 
 		$this->limiter->attempt($this->subscription['subscription_id'], $identifier, $count, $this->period['starts_at'], $this->period['ends_at']);
+
+		$this->attempts[$identifier] = $count;
+	}
+
+	public function can($identifier, $quantity = 0)
+	{
+		return $this->attempts[$identifier] > $quantity;
+	}
+
+	public function consume($identifier, $quantity = 1)
+	{
+		$this->attempts[$identifier] - $quantity;
 	}
 
 	public function softAttempt($identifier, $count = 1)
@@ -119,7 +132,7 @@ class Throttle {
 		if(is_null($this->subscription))
 			throw new Exceptions\SubscriptionException('No Subscription exists');
 
-		return $this->limiter->softAttempt($this->subscription['subscription_id'], $identifier, $count, $this->period['starts_at'], $this->period['ends_at']);
+		$this->attempts[$identifier] = $this->limiter->softAttempt($this->subscription['subscription_id'], $identifier, $count, $this->period['starts_at'], $this->period['ends_at']);
 	}
 
 	public function bill()
@@ -141,13 +154,19 @@ class Throttle {
 		if(is_null($this->subscription))
 			throw new Exceptions\SubscriptionException('No Subscription exists');
 
-		return $this->subscriber->increment($this->subscription['subscription_id'], $identifier, $quantity);
+		$this->subscriber->increment($this->subscription['subscription_id'], $identifier, $quantity);
 	}
 
 	//increments usage of a particular identifier
-	public function redeem($identifier, $quantity = 1)
+	public function redeem()
 	{
-		return $this->hit($identifier, -1 * $quantity);
+		foreach($this->attempts as $identifier => $quantity)
+		{
+			if($quantity > 0)
+			{
+				$this->hit($identifier, -1 * $quantity);	
+			}
+		}
 	}
 	
 	public function addPlan($plan)
