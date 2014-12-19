@@ -24,6 +24,7 @@ class CreateThrottleTable extends Migration {
 			$table->increments('id');
 			$table->string('name', 255);
 			$table->string('identifier', 255);
+			$table->enum('aggregator', ['sum', 'max'])->default('sum');
 		});
 		Schema::create('plan_feature', function(Blueprint $table)
 		{
