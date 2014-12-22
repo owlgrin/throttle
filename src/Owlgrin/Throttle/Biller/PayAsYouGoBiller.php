@@ -2,19 +2,16 @@
 
 use Owlgrin\Throttle\Biller\Biller;
 use Owlgrin\Throttle\Subscriber\SubscriberRepo;
-use Owlgrin\Throttle\Pack\PackRepo as Pack;
 use Owlgrin\Throttle\Feature\FeatureRepo;
 
 class PayAsYouGoBiller implements Biller{
 
 	protected $subscription;
-	protected $pack;
 	protected $featureRepo;
 
-	public function __construct(SubscriberRepo $subscription, Pack $pack, FeatureRepo $featureRepo)
+	public function __construct(SubscriberRepo $subscription, FeatureRepo $featureRepo)
 	{
 		$this->subscription = $subscription;
-		$this->pack = $pack;
 		$this->featureRepo = $featureRepo;
 	}
 

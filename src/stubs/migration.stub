@@ -60,27 +60,6 @@ class CreateThrottleTable extends Migration {
 			$table->integer('limit')->nullable();
 		});
 
-		Schema::create('packs', function(Blueprint $table)
-		{
-			$table->increments('id');
-			$table->string('name', 255);
-			$table->integer('plan_id');
-			$table->integer('feature_id');
-			$table->enum('type', ['private', 'public']);
-			$table->integer('price');
-			$table->integer('quantity');
-		});
-
-		Schema::create('user_pack', function(Blueprint $table)
-		{
-			$table->increments('id');
-			$table->integer('subscription_id');
-			$table->integer('pack_id');
-			$table->integer('units');
-			$table->integer('period_id');
-			$table->tinyInteger('status');
-		});
-
 		Schema::create('subscription_period', function(Blueprint $table)
 		{
 			$table->increments('id');
@@ -104,8 +83,6 @@ class CreateThrottleTable extends Migration {
 		Schema::drop('subscriptions');
 		Schema::drop('user_feature_usage');
 		Schema::drop('user_feature_limit');
-		Schema::drop('packs');
-		Schema::drop('user_pack');
 		Schema::drop('subscription_period');
 	}
 }

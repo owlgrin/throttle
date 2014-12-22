@@ -4,7 +4,6 @@ use Owlgrin\Throttle\Biller\Biller;
 use Owlgrin\Throttle\Subscriber\SubscriberRepo as Subscriber;
 use Owlgrin\Throttle\Plan\PlanRepo as Plan;
 use Owlgrin\Throttle\Exceptions;
-use Owlgrin\Throttle\Pack\PackRepo;
 use Owlgrin\Throttle\Period\PeriodRepo;
 use Owlgrin\Throttle\Limiter\LimiterInterface;
 /**
@@ -15,7 +14,6 @@ class Throttle {
 	protected $biller; 
 	protected $subscriber;
 	protected $plan;
-	protected $pack;
 	protected $periodRepo;	
 	protected $limiter;
 
@@ -23,12 +21,11 @@ class Throttle {
 	protected $user = null;
 	protected $subscription = null;
 
-	public function __construct(Biller $biller, Subscriber $subscriber, Plan $plan, PackRepo $pack, PeriodRepo $periodRepo, LimiterInterface $limiter)
+	public function __construct(Biller $biller, Subscriber $subscriber, Plan $plan, PeriodRepo $periodRepo, LimiterInterface $limiter)
 	{
 		$this->biller = $biller;
 		$this->subscriber = $subscriber;
 		$this->plan = $plan;
-		$this->pack = $pack;
 		$this->periodRepo = $periodRepo;
 		$this->limiter = $limiter;
 	}
@@ -172,29 +169,5 @@ class Throttle {
 	public function addPlan($plan)
 	{
 		return $this->plan->add($plan);
-	}
-
-	public function getPacks()
-	{
-		if(is_null($this->subscription))
-			throw new Exceptions\SubscriptionException('No Subscription exists');
-
-		$this->pack->getPacksForSubscription($this->subscription['subscription_id']);
-	}
-
-	public function addPack($packId, $units)
-	{
-		if(is_null($this->subscription))
-			throw new Exceptions\SubscriptionException('No Subscription exists');
-
-		$this->pack->addPackForUser($this->subscription['subscription_id'], $packId, $units);
-	}
-
-	public function removePack($packId, $units)
-	{
-		if(is_null($this->subscription))
-			throw new Exceptions\SubscriptionException('No Subscription exists');
-
-		$this->pack->removePacksForUser($this->subscription['subscription_id'], $packId, $units);
 	}
 }
