@@ -89,15 +89,12 @@ class DbSubscriberRepo implements SubscriberRepo {
 	{
 		try
 		{
-			//INSERT into user_feature_usage(`subscription_id`, `feature_id`, `used_quantity`, `date`)
-			//we are insering into user_feature table's specific columns 
-			//SELECT $subscriptionId, `feature_id`, 0, now() 
-			//by selecting a subscriptioniD, many features as per plan , initial usage is 0
-			//date is Today
-			//from `plan_feature` where `plan_id` = $planId
-			//from plan_features tables  
-			//GROUP BY `feature_id`
-			//feature_id is grouped
+			/*
+				INSERT into user_feature_usage(`subscription_id`, `feature_id`, `used_quantity`, `date`)
+					SELECT $subscriptionId, `feature_id`, 0, now()
+					FROM `plan_feature` where `plan_id` = $planId
+					GROUP BY `feature_id`
+			*/
 			return $this->db->insert( $this->db->raw("INSERT into ".Config::get('throttle::tables.user_feature_usage').
 				"(`subscription_id`, `feature_id`,`used_quantity`, `date`) SELECT :subscriptionId, `feature_id`, 0, now() 
 				from ".Config::get('throttle::tables.plan_feature')." where `plan_id` = :planId GROUP BY `feature_id`"), 
@@ -113,20 +110,16 @@ class DbSubscriberRepo implements SubscriberRepo {
 	{
 		try
 		{
-			//INSERT into user_feature_limit(`subscription_id`, `feature_id`, `limit`) 
-			//SELECT $subscriptionId, `feature_id` as featureId,
-			//here we are selecting a common subscription id
-			//distinct feature id
-			//and limit 
-			//IF(`limit` IS NULL, NULL, SUM(`limit`)) AS `limit` 
-			//if limit is null then return null
-			//else return sum(limit)
-			//FROM (SELECT `feature_id`, `limit` FROM `plan_feature` WHERE `plan_id` = $planId ORDER BY `tier` DESC) AS `t1`\
-			//we are selecting feature_id and limit in desending order
-			//so as if the null is present in the limit it will come at the top
-			//IF() condition in sql checks only top values
-			// GROUP BY `feature_id`
-			// grouping feature_ids
+			/*
+				INSERT into user_feature_limit(`subscription_id`, `feature_id`, `limit`) 
+					SELECT $subscriptionId, `feature_id` as featureId,
+					IF(`limit` IS NULL, NULL, SUM(`limit`)) AS `limit` -- if limit is null, return null, else sum of limit of all tiers --
+						FROM (SELECT `feature_id`, `limit` FROM `plan_feature` WHERE `plan_id` = $planId ORDER BY `tier` DESC) AS `t1`
+						 -- we are selecting feature_id and limit in desending order
+						 -- so, if the null is present in the limit it will come at the top
+						 -- and IF() condition in sql checks only top values
+						GROUP BY `feature_id`
+			*/
 			return $this->db->insert( $this->db->raw("INSERT into ".Config::get('throttle::tables.user_feature_limit').
 				"(`subscription_id`, `feature_id`, `limit`) SELECT :subscriptionId, `feature_id` as featureId, 
 				IF(`limit` IS NULL, NULL, SUM(`limit`)) AS `limit` FROM (SELECT `feature_id`, `limit` FROM 
