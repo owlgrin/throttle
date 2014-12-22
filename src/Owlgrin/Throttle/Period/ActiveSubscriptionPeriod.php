@@ -5,21 +5,13 @@ use Owlgrin\Throttle\Period\PeriodInterface;
 use Owlgrin\Throttle\Period\SetPeriodInterface;
 use Owlgrin\Throttle\Period\PeriodRepo;
 
-class ActiveSubscriptionPeriod implements PeriodInterface, SetPeriodInterface {
+class ActiveSubscriptionPeriod implements PeriodInterface {
 
 	protected $period;
-	protected $periodRepo;
 
 	public function __construct(PeriodRepo $periodRepo)
 	{
-		$this->periodRepo = $periodRepo;
-	}
-
-	public function set($subscriptionId)
-	{
-		$this->period = $this->periodRepo->getPeriodBySubscription($subscriptionId);
-
-		return $this;
+		$this->period = $periodRepo->getPeriodBySubscription($subscriptionId);
 	}
 
 	public function start($formatted = false)
