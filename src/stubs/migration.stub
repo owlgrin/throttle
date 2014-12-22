@@ -1,0 +1,110 @@
+<?php
+
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Database\Migrations\Migration;
+
+class CreateThrottleTable extends Migration {
+
+	/**
+	 * Run the migrations.
+	 *
+	 * @return void
+	 */
+	public function up()
+	{
+		Schema::create('plans', function(Blueprint $table)
+		{
+			$table->increments('id');
+			$table->string('name', 255);
+			$table->string('identifier', 255);
+			$table->string('description', 255);
+		});
+		Schema::create('features', function(Blueprint $table)
+		{
+			$table->increments('id');
+			$table->string('name', 255);
+			$table->string('identifier', 255);
+		});
+		Schema::create('plan_feature', function(Blueprint $table)
+		{
+			$table->increments('id');
+			$table->integer('plan_id');
+			$table->integer('feature_id');
+			$table->integer('rate');
+			$table->integer('per_quantity');
+			$table->integer('tier');
+			$table->integer('limit')->nullable();
+		});
+		Schema::create('subscriptions', function(Blueprint $table)
+		{
+			$table->increments('id');
+			$table->string('user_id');
+			$table->integer('plan_id');
+			$table->tinyInteger('is_active');
+			$table->timestamp('subscribed_at')->nullable();
+		});
+		Schema::create('user_feature_usage', function(Blueprint $table)
+		{
+			$table->increments('id');
+			$table->integer('subscription_id');
+			$table->integer('feature_id');
+			$table->integer('used_quantity');
+			$table->date('date');
+		});
+		Schema::create('user_feature_limit', function(Blueprint $table)
+		{
+			$table->increments('id');
+			$table->integer('subscription_id');
+			$table->integer('feature_id');
+			$table->integer('limit')->nullable();
+		});
+
+		Schema::create('packs', function(Blueprint $table)
+		{
+			$table->increments('id');
+			$table->string('name', 255);
+			$table->integer('plan_id');
+			$table->integer('feature_id');
+			$table->enum('type', ['private', 'public']);
+			$table->integer('price');
+			$table->integer('quantity');
+		});
+
+		Schema::create('user_pack', function(Blueprint $table)
+		{
+			$table->increments('id');
+			$table->integer('subscription_id');
+			$table->integer('pack_id');
+			$table->integer('units');
+			$table->integer('period_id');
+			$table->tinyInteger('status');
+		});
+
+		Schema::create('subscription_period', function(Blueprint $table)
+		{
+			$table->increments('id');
+			$table->integer('subscription_id');
+			$table->date('starts_at');
+			$table->date('ends_at');
+			$table->tinyInteger('status');
+		});
+	}
+
+	/**
+	 * Reverse the migrations.
+	 *
+	 * @return void
+	 */
+	public function down()
+	{
+		Schema::drop('plans');
+		Schema::drop('features');
+		Schema::drop('plan_feature');
+		Schema::drop('subscriptions');
+		Schema::drop('user_feature_usage');
+		Schema::drop('user_feature_limit');
+		Schema::drop('packs');
+		Schema::drop('user_pack');
+		Schema::drop('subscription_period');
+	}
+}
