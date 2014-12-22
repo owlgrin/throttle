@@ -38,7 +38,6 @@ class Throttle {
 		$this->user = $user;
 		$this->subscription = $this->subscriber->subscription($this->user);
 		$this->features = $this->plan->getFeaturesByPlan($this->subscription['plan_id']);
-		$this->usages = $this->setUsages();
 		$this->period = $this->periodRepo->getPeriodBySubscription($this->subscription['subscription_id']);
 
 		return $this;
@@ -59,31 +58,6 @@ class Throttle {
 	public function getFeatures()
 	{
 		return $this->features;
-	}
-
-	public function getUsages()
-	{
-		return $this->usages;
-	}
-
-	public function incrementUsages($identifier, $count = 1)
-	{
-		$this->usages[$identifier] += $count;
-	}
-
-	private function setUsages()
-	{
-		$initializeUsage = [];
-
-		foreach($this->features as $index => $feature) 
-		{
-			if( ! isset($usages[$feature['identifier']]))
-			{
-				$initializeUsage[$feature['identifier']] = 0;
-			}
-		}	
-
-		return $initializeUsage;	
 	}
 
 	//subscribes a user to a specific plan
@@ -121,40 +95,14 @@ class Throttle {
 		$this->period($startDate, $endDate);
 	}
 
-	public function can($identifier, $count = 1, $reduce = true)
+	public function attempt($identifier, $count = 1)
 	{
-		$limit = $this->redis->hashGet("throttle:hashes:limit:{$identifier}", $this->user);
-	
-		if($limit === false)
-		{
-	 		$limit = $this->subscriber->left($this->subscription['subscription_id'], $identifier, $this->period['starts_at'], $this->period['ends_at']);
+		$this->subscriber->attempt($this->subscription['subscription_id'], $identifier, $count, $this->period['starts_at'], $this->period['ends_at']);
+	}
 
-			if(! is_null($limit)) 
-			{
-				$limit = $limit - $this->usages[$identifier];
-			}
-		
-			$this->redis->hashSet("throttle:hashes:limit:{$identifier}", $this->user, $limit);
-		}
-		
-		if($limit === "" or is_null($limit)) 
-		{
-			return true;
-		}
-
-		else if($limit >= $count)
-		{
-			if($reduce === true)
-			{
-				$this->redis->hashIncrement("throttle:hashes:limit:{$identifier}", $this->user, -($count));
-			}
-
-			return true;
-		}
-		else
-		{
-			return false;
-		}
+	public function softAttempt($identifier, $count = 1)
+	{
+		return $this->subscriber->softAttempt($this->subscription['subscription_id'], $identifier, $count, $this->period['starts_at'], $this->period['ends_at']);
 	}
 
 	public function bill()
@@ -172,30 +120,16 @@ class Throttle {
 	{
 		return $this->subscriber->increment($this->subscription['subscription_id'], $identifier, $quantity);
 	}
+
+	//increments usage of a particular identifier
+	public function redeem($identifier, $quantity = 1)
+	{
+		return $this->increment($identifier, -$quantity);
+	}
 	
 	public function plan($plan)
 	{
 		return $this->plan->add($plan);
-	}
-
-	public function unsetLimit($identifier)
-	{
-		$this->redis->hashUnset("throttle:hashes:limit:{$identifier}", $this->getUser());
-	}
-
-	public function flush()
-	{
-		$usages = $this->getUsages();
-	
-		foreach($usages as $entity => $value) 
-		{
-			if($value !== 0)
-			{
-				$this->increment($entity, $value);			
-			}
-
-			$this->unsetLimit($entity);
-		}
 	}
 
 	public function addPack($packId, $units)

@@ -99,6 +99,11 @@ class ThrottleServiceProvider extends ServiceProvider {
 			return $app->make('Owlgrin\Throttle\Commands\SeedDailyUsageCommand');
 		});
 
+		$this->app->bindShared('command.add.user.period', function($app)
+		{
+			return $app->make('Owlgrin\Throttle\Commands\AddPeriodForUserCommand');
+		});
+
 		$this->commands('command.throttle.table');
 		$this->commands('command.user.subscribe');
 		$this->commands('command.plan.entry');
@@ -110,6 +115,7 @@ class ThrottleServiceProvider extends ServiceProvider {
 		$this->commands('command.plan.list');
 		$this->commands('command.feature.list');
 		$this->commands('command.seed.daily.usage');
+		$this->commands('command.add.user.period');
 	}
 
 	protected function registerRepositories()

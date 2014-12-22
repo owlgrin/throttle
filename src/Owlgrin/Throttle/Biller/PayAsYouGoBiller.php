@@ -3,16 +3,19 @@
 use Owlgrin\Throttle\Biller\Biller;
 use Owlgrin\Throttle\Subscriber\SubscriberRepo;
 use Owlgrin\Throttle\Pack\PackRepo as Pack;
+use Owlgrin\Throttle\Feature\FeatureRepo;
 
 class PayAsYouGoBiller implements Biller{
 
 	protected $subscription;
 	protected $pack;
+	protected $featureRepo;
 
-	public function __construct(SubscriberRepo $subscription, Pack $pack)
+	public function __construct(SubscriberRepo $subscription, Pack $pack, FeatureRepo $featureRepo)
 	{
 		$this->subscription = $subscription;
 		$this->pack = $pack;
+		$this->featureRepo = $featureRepo;
 	}
 
 	public function estimate($usages)
@@ -20,11 +23,11 @@ class PayAsYouGoBiller implements Biller{
 		return $this->calculateByUsage($usages);
 	}
 
-	public function bill($userId, $startDate, $endDate)
+	public function bill($subscriptionId, $startDate, $endDate)
 	{
-		$usages = $this->subscription->getUsage($userId, $startDate, $endDate);
+		$usages = $this->subscription->getUsage($subscriptionId, $startDate, $endDate);
 
-		return $this->calculateByUsage($usages, $userId);
+		return $this->calculateByUsage($usages, $subscriptionId);
 	}
 
 	private function calculateByPacks($packs)
@@ -39,7 +42,7 @@ class PayAsYouGoBiller implements Biller{
 		return $allPacks;
 	}
 
-	private function calculateByUsage($usages, $userId = null)
+	private function calculateByUsage($usages, $subscriptionId = null)
 	{
 		$amount = 0;
 		$lines = [];
@@ -48,7 +51,7 @@ class PayAsYouGoBiller implements Biller{
 		{
 			$tiers = $this->getTierByFeature($feature['plan_id'], $feature['feature_id']);
 			
-			$lineItem = $this->calculateByTier($tiers, $feature['feature_id'], $feature['used_quantity'], $userId);
+			$lineItem = $this->calculateByTier($tiers, $feature['feature_id'], $feature['used_quantity'], $subscriptionId);
 		
 			$amount += $lineItem['amount'];
 			$lineItem['usage'] = (int) $feature['used_quantity'];
@@ -61,18 +64,18 @@ class PayAsYouGoBiller implements Biller{
 	private function getTierByFeature($planId, $featureId)
 	{
 		//finding limit of the feature
-		return $this->subscription->featureLimit($planId, $featureId);
+		return $this->featureRepo->featureLimit($planId, $featureId);
 	}
 
-	private function calculateByTier($tiers, $featureId, $usage, $userId = null)
+	private function calculateByTier($tiers, $featureId, $usage, $subscriptionId = null)
 	{
 		$bill = 0;
 		$lineItem = [];
 		$packs = [];
 
-		if(! is_null($userId))
+		if(! is_null($subscriptionId))
 		{
-			$packs = $this->pack->getPacksByUserId($userId, $featureId);	
+			$packs = $this->pack->getPacksForSubscriptionFeature($subscriptionId, $featureId);	
 		}
 
 		if($packs)
