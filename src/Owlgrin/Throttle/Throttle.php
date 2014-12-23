@@ -36,7 +36,7 @@ class Throttle {
 		$this->user = $user;
 		$this->subscription = $this->subscriber->subscription($this->user);
 		$this->features = $this->plan->getFeaturesByPlan($this->subscription['plan_id']);
-		$this->period = $this->periodRepo->getPeriodBySubscription($this->subscription['subscription_id']);
+		$this->period = $this->periodRepo->getPeriodBySubscription($this->subscription['id']);
 
 		return $this;
 	}
@@ -97,9 +97,9 @@ class Throttle {
 		if(is_null($this->subscription))
 			throw new Exceptions\SubscriptionException('No Subscription exists');
 
-		$this->periodRepo->unsetPeriod($this->subscription['subscription_id']);
+		$this->periodRepo->unsetPeriod($this->subscription['id']);
 
-		$this->periodRepo->store($this->subscription['subscription_id'], $period->start(), $period->end());
+		$this->periodRepo->store($this->subscription['id'], $period->start(), $period->end());
 
 		return $this->user($this->user);
 	}
@@ -109,7 +109,7 @@ class Throttle {
 		if(is_null($this->subscription))
 			throw new Exceptions\SubscriptionException('No Subscription exists');
 
-		$this->limiter->attempt($this->subscription['subscription_id'], $identifier, $count, $this->period['starts_at'], $this->period['ends_at']);
+		$this->limiter->attempt($this->subscription['id'], $identifier, $count, $this->period['starts_at'], $this->period['ends_at']);
 
 		$this->attempts[$identifier] = $count;
 	}
@@ -129,7 +129,7 @@ class Throttle {
 		if(is_null($this->subscription))
 			throw new Exceptions\SubscriptionException('No Subscription exists');
 
-		$this->attempts[$identifier] = $this->limiter->softAttempt($this->subscription['subscription_id'], $identifier, $count, $this->period['starts_at'], $this->period['ends_at']);
+		$this->attempts[$identifier] = $this->limiter->softAttempt($this->subscription['id'], $identifier, $count, $this->period['starts_at'], $this->period['ends_at']);
 	}
 
 	public function bill()
@@ -151,7 +151,7 @@ class Throttle {
 		if(is_null($this->subscription))
 			throw new Exceptions\SubscriptionException('No Subscription exists');
 
-		$this->subscriber->increment($this->subscription['subscription_id'], $identifier, $quantity);
+		$this->subscriber->increment($this->subscription['id'], $identifier, $quantity);
 	}
 
 	//increments usage of a particular identifier

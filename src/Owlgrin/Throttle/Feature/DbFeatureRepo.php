@@ -33,6 +33,23 @@ class DbFeatureRepo implements FeatureRepo {
 		}
 	}
 
+	public function allForUser($userId)
+	{
+		try
+		{
+			return $this->db->table(Config::get('throttle::tables.subscriptions').' AS s')
+						->join(Config::get('throttle::tables.plan_feature').' AS pf', 's.plan_id', '=', 'pf.plan_id')
+						->join(Config::get('throttle::tables.features').' AS f', 'pf.feature_id', '=', 'f.id')
+						->select('f.*')
+						->groupBy('f.id')
+						->get();
+		}
+		catch(PDOException $e)
+		{
+			throw new Exceptions\InternalException;
+		}
+	}
+
 	public function getAllFeatures()
 	{
 		try

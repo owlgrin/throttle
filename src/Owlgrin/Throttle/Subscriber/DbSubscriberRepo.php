@@ -23,6 +23,35 @@ class DbSubscriberRepo implements SubscriberRepo {
 		$this->featureRepo = $featureRepo;
 	}
 
+	public function all()
+	{
+		try
+		{
+			return $this->db->table(Config::get('throttle::tables.subscriptions'))
+							->where('is_active', true)
+							->select('id', 'user_id', 'plan_id', 'subscribed_at')
+							->get();
+		}
+		catch(PDOException $e)
+		{
+			throw new Exceptions\InternalException;
+		}
+	}
+
+	public function getAllUserIds()
+	{
+		try
+		{
+			return $this->db->table(Config::get('throttle::tables.subscriptions'))
+							->where('is_active', true)
+							->lists('user_id');
+		}
+		catch(PDOException $e)
+		{
+			throw new Exceptions\InternalException;
+		}
+	}
+
 	public function subscribe($userId, $planIdentifier)
 	{	
 		try
@@ -148,6 +177,32 @@ class DbSubscriberRepo implements SubscriberRepo {
 		}
 	}
 
+	public function seedPreparedUsages($usages)
+	{
+		try
+		{
+			/*
+				insert ignore into _throttle_user_feature_usage (subscription_id, feature_id, used_quantity, date)
+				values (1, 1, 0, '2014-12-20'), (1, 1, 0, '2014-12-20'), (1, 1, 0, '2014-12-20'), (1, 1, 0, '2014-12-20')
+			 */
+			$values = [];
+			foreach($usages as $usage)
+			{
+				$values[] = "({$usage['subscription_id']}, {$usage['feature_id']}, {$usage['used_quantity']}, '{$usage['date']}')";
+			}
+
+			return $this->db->insert('
+					insert ignore into `'.Config::get('throttle::tables.user_feature_usage').'`
+					(`subscription_id`, `feature_id`, `used_quantity`, `date`)
+					values '.implode(',', $values)
+				);
+		}
+		catch(PDOException $e)
+		{
+			throw new Exceptions\InternalException;
+		}
+	}
+
 	//returns usage of the user
 	public function getUsage($userId, $startDate, $endDate)
 	{
@@ -195,7 +250,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 			return $this->db->table(Config::get('throttle::tables.subscriptions'))
 				->where('user_id', $userId)
 				->where('is_active', '1')
-				->select('id AS subscription_id', 'plan_id', 'subscribed_at')
+				->select('id', 'user_id', 'plan_id', 'subscribed_at')
 				->first();
 		}
 		catch(PDOException $e)

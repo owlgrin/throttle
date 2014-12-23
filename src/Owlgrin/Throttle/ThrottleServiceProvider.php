@@ -76,7 +76,7 @@ class ThrottleServiceProvider extends ServiceProvider {
 
 		$this->app->bindShared('command.seed.daily.usage', function($app)
 		{
-			return $app->make('Owlgrin\Throttle\Commands\SeedDailyUsageCommand');
+			return $app->make('Owlgrin\Throttle\Commands\SeedDailyBaseUsageCommand');
 		});
 
 		$this->app->bindShared('command.add.user.period', function($app)
