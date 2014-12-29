@@ -5,6 +5,7 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputArgument;
 use Owlgrin\Throttle\Subscriber\SubscriberRepo;
 use Owlgrin\Throttle\Feature\FeatureRepo;
+use Carbon\Carbon;
 use App, Config;
 
 /**
@@ -111,7 +112,7 @@ class SeedDailyBaseUsageCommand extends Command {
 	protected function getOptions()
 	{
 		return array(
-			array('date', null, InputOption::VALUE_OPTIONAL, 'The date (YYYY-MM-DD) for which the usages are to be seeded.', date('Y-m-d')),
+			array('date', null, InputOption::VALUE_OPTIONAL, 'The date (YYYY-MM-DD) for which the usages are to be seeded.', Carbon::tomorrow()->toDateString()),
 			array('user', null, InputOption::VALUE_OPTIONAL, 'The user for whom we need to seed the usage.', null),
 		);
 	}
