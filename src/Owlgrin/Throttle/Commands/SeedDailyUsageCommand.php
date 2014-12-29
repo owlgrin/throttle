@@ -4,8 +4,7 @@ use Illuminate\Console\Command;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputArgument;
 use Owlgrin\Throttle\Subscriber\SubscriberRepo;
-use Owlgrin\Throttle\Period\ThrottlePeriod;
-use Owlgrin\Throttle\Pack\PackRepo;
+use Owlgrin\Throttle\Period\ActiveSubscriptionPeriod;
 /**
  * Command to generate the required migration
  */
@@ -31,16 +30,14 @@ class SeedDailyUsageCommand extends Command {
 	 * @return void
 	 */
 	protected $subscriber;
-	protected $pack;
 	protected $period;
 
-	public function __construct(SubscriberRepo $subscriber, ThrottlePeriod $period, PackRepo $pack)
+	public function __construct(SubscriberRepo $subscriber, ActiveSubscriptionPeriod $period)
 	{
  		parent::__construct();
 
  		$this->subscriber = $subscriber;
  		$this->period = $period;
- 		$this->pack = $pack;
 	}
 
 	public function fire()
@@ -48,11 +45,6 @@ class SeedDailyUsageCommand extends Command {
 		$userId = $this->option('user_id');
 
 		$subscription = $this->subscriber->subscription($userId);
-		
-		if($this->period->set($subscription['id'])->isNewPeriod())
-		{
-			$this->pack->seedPackForNewPeriod($subscription['subscription_id']);
-		}
 
 		$this->subscriber->addInitialUsageForFeatures($subscription['subscription_id'], $subscription['plan_id']);
 

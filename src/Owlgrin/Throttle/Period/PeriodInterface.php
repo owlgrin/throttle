@@ -1,8 +1,6 @@
 <?php namespace Owlgrin\Throttle\Period;
 
 interface PeriodInterface {
-
-	public function set($subscriptionId);
 	
 	public function start($formatted);
 

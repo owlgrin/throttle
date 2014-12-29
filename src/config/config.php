@@ -1,12 +1,6 @@
 <?php
 
 return array(
-	/**
-	 * The following options tell Horntell to work seamlessly with
-	 * the the storage. We use this SQL tables to record certain 
-	 * information about the plans
-	 */
-
 
 	'tables' => array(
 		/**
@@ -39,16 +33,6 @@ return array(
 		 * of a particular feature
 		 */
 		'user_feature_limit' => 'user_feature_limit',
-		/**
-		 * This table stores different packs
-		 * having price and quantity
-		 */
-		'packs' => 'packs',
-		/**
-		 * This table stores packs used by the user
-		 * with units
-		 */
-		'user_pack' => 'user_pack',
 		/**
 		 * This table stores period used by the user
 		 */

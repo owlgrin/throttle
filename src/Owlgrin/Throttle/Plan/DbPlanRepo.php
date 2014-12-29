@@ -3,7 +3,7 @@
 use Illuminate\Database\DatabaseManager as Database;
 use Owlgrin\Throttle\Plan\PlanRepo;
 use Owlgrin\Throttle\Exceptions;
-use Exception, Config;
+use PDOException, Config;
 
 class DbPlanRepo implements PlanRepo {
 
@@ -30,7 +30,7 @@ class DbPlanRepo implements PlanRepo {
 			//then add the plan_feature mapping
 			foreach($plan['features'] as $feature)
 			{
-				$featureId = $this->addFeature($feature['name'], $feature['identifier']);
+				$featureId = $this->addFeature($feature['name'], $feature['identifier'], array_get($feature, 'aggregator', 'sum'));
 				
 				foreach($feature['tier'] as $index => $tier)
 				{
@@ -41,12 +41,12 @@ class DbPlanRepo implements PlanRepo {
 			//commition the work after processing
 			$this->db->commit();
 		}
-		catch(\Exception $e)
+		catch(PDOException $e)
 		{
 			//rollback if failed
 			$this->db->rollback();
 
-			throw new Exceptions\InvalidInputException;
+			throw new Exceptions\InternalException("Something went wrong with database");
 		}
 	}
 
@@ -54,54 +54,96 @@ class DbPlanRepo implements PlanRepo {
 	{
 		try
 		{
-			$planId = $this->db->table(Config::get('throttle::tables.plans'))->insertGetId([
+			return $this->db->table(Config::get('throttle::tables.plans'))->insertGetId([
 				'name' 		  => $name,
 				'identifier'  => $identifier,
 				'description' => $description
 			]);
-
-			return $planId;
 		}
-		catch(Exception $e)
+		catch(PDOException $e)
 		{
-			throw new Exceptions\InvalidInputException;
+			throw new Exceptions\InternalException("Something went wrong with database");	
 		}
 	}
 
 
-	private function addFeature($name, $identifier)
+	public function addFeature($name, $identifier, $aggregator = 'sum')
 	{
-		$featureId = $this->db->table(Config::get('throttle::tables.features'))->insertGetId([
-			'name' => $name,
-			'identifier' => $identifier
-		]);
+		try
+		{	
+			$featureId = $this->ifFeatureExists($identifier);
 
-		return $featureId;
+			if( ! $featureId)
+			{	
+				$featureId = $this->db->table(Config::get('throttle::tables.features'))->insertGetId([
+					'name' => $name,
+					'identifier' => $identifier,
+					'aggregator' => $aggregator
+				]);
+			}
+
+			return (int) $featureId;
+		}
+		catch(PDOException $e)
+		{
+			throw new Exceptions\InternalException("Something went wrong with database");	
+		}
+	}
+
+	private function ifFeatureExists($identifier)
+	{
+		try
+		{
+			$feature = $this->db->table(Config::get('throttle::tables.features'))
+				->where('identifier', $identifier)
+				->select('id')
+				->first();
+
+			return $feature['id'];
+		}
+		catch(PDOException $e)
+		{
+			throw new Exceptions\InternalException("Something went wrong with database");	
+		}
 	}
 
 	private function addPlanFeature($planId, $featureId, $rate, $perQuantity, $tier, $limit)
 	{
-		$this->db->table(Config::get('throttle::tables.plan_feature'))->insert([
-			'plan_id' => $planId,
-			'feature_id' => $featureId,
-			'rate' => $rate,
-			'per_quantity' => $perQuantity,
-			'tier' => $tier,
-			'limit' => $limit
-		]);
+		try
+		{
+			$this->db->table(Config::get('throttle::tables.plan_feature'))->insert([
+				'plan_id' => $planId,
+				'feature_id' => $featureId,
+				'rate' => $rate,
+				'per_quantity' => $perQuantity,
+				'tier' => $tier,
+				'limit' => $limit
+			]);
+		}
+		catch(PDOException $e)
+		{
+			throw new Exceptions\InternalException("Something went wrong with database");	
+		}
 	}
 
 	public function getFeaturesByPlan($planId)
 	{
-		$features = $this->db->select("SELECT * FROM ".Config::get('throttle::tables.features')." Where id IN (Select distinct(feature_id) from " .Config::get('throttle::tables.plan_feature')." Where `plan_id` = {$planId} )");
-	
-		foreach($features as $index => $feature) 
+		try
 		{
-			unset($features[$index]);
-			$features[$feature['identifier']] = $feature;
-		}
+			$features = $this->db->select("SELECT * FROM ".Config::get('throttle::tables.features')." Where id IN (Select distinct(feature_id) from " .Config::get('throttle::tables.plan_feature')." Where `plan_id` = {$planId} )");
+		
+			foreach($features as $index => $feature) 
+			{
+				unset($features[$index]);
+				$features[$feature['identifier']] = $feature;
+			}
 
-		return $features;
+			return $features;
+		}
+		catch(PDOException $e)
+		{
+			throw new Exceptions\InternalException("Something went wrong with database");	
+		}
 	}
 
 	public function getPlanByIdentifier($identifier)
@@ -112,21 +154,22 @@ class DbPlanRepo implements PlanRepo {
 				->where('identifier', $identifier)
 				->first();
 		}
-		catch(Exception $e)
+		catch(PDOException $e)
 		{
-			throw new Exceptions\InvalidInputException;
+			throw new Exceptions\InternalException("Something went wrong with database");	
 		}
 	}
 
 	public function getAllPlans()
 	{
-		return $this->db->table(Config::get('throttle::tables.plans'))
-				->get();
-	}
-
-	public function getAllFeatures()
-	{
-		return $this->db->table(Config::get('throttle::tables.features'))
-			->get();
+		try
+		{
+			return $this->db->table(Config::get('throttle::tables.plans'))
+					->get();
+		}
+		catch(PDOException $e)
+		{
+			throw new Exceptions\InternalException("Something went wrong with database");	
+		}	
 	}
 }
