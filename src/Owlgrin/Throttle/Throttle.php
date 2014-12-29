@@ -4,7 +4,6 @@ use Owlgrin\Throttle\Biller\Biller;
 use Owlgrin\Throttle\Subscriber\SubscriberRepo as Subscriber;
 use Owlgrin\Throttle\Plan\PlanRepo as Plan;
 use Owlgrin\Throttle\Exceptions;
-use Owlgrin\Throttle\Redis\RedisStorage as Redis;
 use Owlgrin\Throttle\Pack\PackRepo;
 use Owlgrin\Throttle\Period\PeriodRepo;
 /**
@@ -15,19 +14,17 @@ class Throttle {
 	protected $biller; 
 	protected $subscriber;
 	protected $plan;
-	protected $redis;
 	protected $pack;
 	protected $periodRepo;	
 
 	protected $user = null;
 	protected $subscription = null;
 
-	public function __construct(Biller $biller, Subscriber $subscriber, Plan $plan, Redis $redis, PackRepo $pack, PeriodRepo $periodRepo)
+	public function __construct(Biller $biller, Subscriber $subscriber, Plan $plan, PackRepo $pack, PeriodRepo $periodRepo)
 	{
 		$this->biller = $biller;
 		$this->subscriber = $subscriber;
 		$this->plan = $plan;
-		$this->redis = $redis;
 		$this->pack = $pack;
 		$this->periodRepo = $periodRepo;
 	}

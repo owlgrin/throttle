@@ -7,9 +7,6 @@ return array(
 	 * information about the plans
 	 */
 
-	'redis' => array(
-		'connection' => 'default',
-	),
 
 	'tables' => array(
 		/**
