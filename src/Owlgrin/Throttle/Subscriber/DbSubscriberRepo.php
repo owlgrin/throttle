@@ -273,7 +273,9 @@ class DbSubscriberRepo implements SubscriberRepo {
 				->where('ufu.date', $today)
 				->increment('ufu.used_quantity', $count);
 
-			if($update == 0)
+			//count should not be equal to zero 
+			//we dont want to create entry of those feature whose count is zero
+			if($update == 0 and $count != 0)
 			{
 				$this->addUsageByFeatureIdentifier($subscriptionId, $identifier, $count);
 			}
