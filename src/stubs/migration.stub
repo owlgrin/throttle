@@ -51,6 +51,7 @@ class CreateThrottleTable extends Migration {
 			$table->integer('feature_id');
 			$table->integer('used_quantity');
 			$table->date('date');
+			$table->unique( array('subscription_id', 'feature_id', 'date') );
 		});
 		Schema::create('user_feature_limit', function(Blueprint $table)
 		{
