@@ -10,6 +10,4 @@ interface PlanRepo {
 
 	public function getAllPlans();
 
-	public function getAllFeatures();
-
 }

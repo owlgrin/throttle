@@ -2,7 +2,7 @@
 
 interface Biller {
 
-	public function bill($userId, $startDate, $endDate);
+	public function bill($subscriptionId, $startDate, $endDate);
 	public function estimate($usages);
 
 }

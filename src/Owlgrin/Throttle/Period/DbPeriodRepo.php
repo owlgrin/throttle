@@ -1,10 +1,10 @@
 <?php namespace Owlgrin\Throttle\Period;
 
 use Illuminate\Database\DatabaseManager as Database;
-
 use Owlgrin\Throttle\Period\PeriodRepo;
+use Owlgrin\Throttle\Exceptions;
 
-use Config;
+use Config, PDOException;
 
 class DbPeriodRepo implements PeriodRepo {
 
@@ -15,27 +15,48 @@ class DbPeriodRepo implements PeriodRepo {
 
 	public function store($subscriptionId, $startDate, $endDate)
 	{
-		return $this->db->table(Config::get('throttle::tables.subscription_period'))->insertGetId([
-			'subscription_id' => $subscriptionId,
-			'starts_at' => $startDate,
-			'ends_at' => $endDate,
-			'status' => 1
-		]);
+		try
+		{
+			return $this->db->table(Config::get('throttle::tables.subscription_period'))->insertGetId([
+				'subscription_id' => $subscriptionId,
+				'starts_at' => $startDate,
+				'ends_at' => $endDate,
+				'status' => 1
+			]);
+		}
+		catch(PDOException $e)
+		{
+			throw new Exceptions\InternalException("Something went wrong with database");	
+		}
 	}
 
 	public function getPeriodBySubscription($subscriptionId)
 	{
-		return $this->db->table(Config::get('throttle::tables.subscription_period'))
-			->where('subscription_id', $subscriptionId)
-			->where('status', 1)
-			->first();
+		try
+		{
+			return $this->db->table(Config::get('throttle::tables.subscription_period'))
+				->where('subscription_id', $subscriptionId)
+				->where('status', 1)
+				->first();
+		}
+		catch(PDOException $e)
+		{
+			throw new Exceptions\InternalException("Something went wrong with database");	
+		}
 	}
 
 	public function unsetPeriod($subscriptionId)
 	{
-		$this->db->table(Config::get('throttle::tables.subscription_period'))
-			->where('subscription_id', $subscriptionId)
-			->where('status', 1)
-			->update('status', 0);
+		try
+		{
+			$this->db->table(Config::get('throttle::tables.subscription_period'))
+				->where('subscription_id', $subscriptionId)
+				->where('status', 1)
+				->update('status', 0);
+		}
+		catch(PDOException $e)
+		{
+			throw new Exceptions\InternalException("Something went wrong with database");	
+		}
 	}
 }

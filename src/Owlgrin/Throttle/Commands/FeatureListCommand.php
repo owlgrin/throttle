@@ -3,7 +3,7 @@
 use Illuminate\Console\Command;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputArgument;
-use Owlgrin\Throttle\Plan\PlanRepo;
+use Owlgrin\Throttle\Feature\FeatureRepo;
 use Config;
 
 /**
@@ -30,17 +30,17 @@ class FeatureListCommand extends Command {
 	 *
 	 * @return void
 	 */
-	protected $plan;
+	protected $Feature;
 
-	public function __construct(PlanRepo $plan)
+	public function __construct(FeatureRepo $feature)
 	{
  		parent::__construct();
-		$this->plan = $plan;
+		$this->feature = $feature;
 	}
 
 	public function fire()
 	{		
-		$features = $this->plan->getAllFeatures();
+		$features = $this->feature->getAllFeatures();
 
 		print_r($features);
 	}

@@ -59,29 +59,9 @@ class ThrottleServiceProvider extends ServiceProvider {
 			return $app->make('Owlgrin\Throttle\Commands\PlanEntryCommand');
 		});
 
-		$this->app->bindShared('command.pack.entry', function($app)
-		{
-			return $app->make('Owlgrin\Throttle\Commands\PackEntryCommand');
-		});
-
-		$this->app->bindShared('command.add.user.pack', function($app)
-		{
-			return $app->make('Owlgrin\Throttle\Commands\AddPackForUserCommand');
-		});
-
-		$this->app->bindShared('command.remove.user.pack', function($app)
-		{
-			return $app->make('Owlgrin\Throttle\Commands\RemovePackForUserCommand');
-		});
-
 		$this->app->bindShared('command.user.bill', function($app)
 		{
 			return $app->make('Owlgrin\Throttle\Commands\UserBillCommand');
-		});
-
-		$this->app->bindShared('command.pack.list', function($app)
-		{
-			return $app->make('Owlgrin\Throttle\Commands\PackListCommand');
 		});
 
 		$this->app->bindShared('command.plan.list', function($app)
@@ -96,20 +76,22 @@ class ThrottleServiceProvider extends ServiceProvider {
 
 		$this->app->bindShared('command.seed.daily.usage', function($app)
 		{
-			return $app->make('Owlgrin\Throttle\Commands\SeedDailyUsageCommand');
+			return $app->make('Owlgrin\Throttle\Commands\SeedDailyBaseUsageCommand');
+		});
+
+		$this->app->bindShared('command.add.user.period', function($app)
+		{
+			return $app->make('Owlgrin\Throttle\Commands\AddPeriodForUserCommand');
 		});
 
 		$this->commands('command.throttle.table');
 		$this->commands('command.user.subscribe');
 		$this->commands('command.plan.entry');
-		$this->commands('command.pack.entry');
-		$this->commands('command.add.user.pack');
-		$this->commands('command.remove.user.pack');
 		$this->commands('command.user.bill');
-		$this->commands('command.pack.list');
 		$this->commands('command.plan.list');
 		$this->commands('command.feature.list');
 		$this->commands('command.seed.daily.usage');
+		$this->commands('command.add.user.period');
 	}
 
 	protected function registerRepositories()
@@ -117,9 +99,9 @@ class ThrottleServiceProvider extends ServiceProvider {
 		$this->app->bind('Owlgrin\Throttle\Biller\Biller', 'Owlgrin\Throttle\Biller\PayAsYouGoBiller');
 		$this->app->bind('Owlgrin\Throttle\Subscriber\SubscriberRepo', 'Owlgrin\Throttle\Subscriber\DbSubscriberRepo');
 		$this->app->bind('Owlgrin\Throttle\Plan\PlanRepo', 'Owlgrin\Throttle\Plan\DbPlanRepo');
-		$this->app->bind('Owlgrin\Throttle\Pack\PackRepo', 'Owlgrin\Throttle\Pack\DbPackRepo');
 		$this->app->bind('Owlgrin\Throttle\Period\PeriodRepo', 'Owlgrin\Throttle\Period\DbPeriodRepo');
 		$this->app->bind('Owlgrin\Throttle\Feature\FeatureRepo', 'Owlgrin\Throttle\Feature\DbFeatureRepo');
+		$this->app->bind('Owlgrin\Throttle\Limiter\LimiterInterface', 'Owlgrin\Throttle\Limiter\Limiter');
 
 		$this->app->singleton('throttle', 'Owlgrin\Throttle\Throttle');
 	}

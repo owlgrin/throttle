@@ -4,9 +4,8 @@ use Owlgrin\Throttle\Biller\Biller;
 use Owlgrin\Throttle\Subscriber\SubscriberRepo as Subscriber;
 use Owlgrin\Throttle\Plan\PlanRepo as Plan;
 use Owlgrin\Throttle\Exceptions;
-use Owlgrin\Throttle\Redis\RedisStorage as Redis;
-use Owlgrin\Throttle\Pack\PackRepo;
 use Owlgrin\Throttle\Period\PeriodRepo;
+use Owlgrin\Throttle\Limiter\LimiterInterface;
 /**
  * The Throttle core
  */
@@ -15,21 +14,20 @@ class Throttle {
 	protected $biller; 
 	protected $subscriber;
 	protected $plan;
-	protected $redis;
-	protected $pack;
 	protected $periodRepo;	
+	protected $limiter;
 
+	protected $attempts = [];
 	protected $user = null;
 	protected $subscription = null;
 
-	public function __construct(Biller $biller, Subscriber $subscriber, Plan $plan, Redis $redis, PackRepo $pack, PeriodRepo $periodRepo)
+	public function __construct(Biller $biller, Subscriber $subscriber, Plan $plan, PeriodRepo $periodRepo, LimiterInterface $limiter)
 	{
 		$this->biller = $biller;
 		$this->subscriber = $subscriber;
 		$this->plan = $plan;
-		$this->redis = $redis;
-		$this->pack = $pack;
 		$this->periodRepo = $periodRepo;
+		$this->limiter = $limiter;
 	}
 
 	//sets users details at the time of initialisation
@@ -38,8 +36,7 @@ class Throttle {
 		$this->user = $user;
 		$this->subscription = $this->subscriber->subscription($this->user);
 		$this->features = $this->plan->getFeaturesByPlan($this->subscription['plan_id']);
-		$this->usages = $this->setUsages();
-		$this->period = $this->periodRepo->getPeriodBySubscription($this->subscription['subscription_id']);
+		$this->period = $this->periodRepo->getPeriodBySubscription($this->subscription['id']);
 
 		return $this;
 	}
@@ -61,29 +58,9 @@ class Throttle {
 		return $this->features;
 	}
 
-	public function getUsages()
+	public function getPeriod()
 	{
-		return $this->usages;
-	}
-
-	public function incrementUsages($identifier, $count = 1)
-	{
-		$this->usages[$identifier] += $count;
-	}
-
-	private function setUsages()
-	{
-		$initializeUsage = [];
-
-		foreach($this->features as $index => $feature) 
-		{
-			if( ! isset($usages[$feature['identifier']]))
-			{
-				$initializeUsage[$feature['identifier']] = 0;
-			}
-		}	
-
-		return $initializeUsage;	
+		return $this->period;
 	}
 
 	//subscribes a user to a specific plan
@@ -91,74 +68,75 @@ class Throttle {
 	{
 		$user = is_null($user) ? $this->user : $user;
 
-		$this->subscriber->subscribe($user, $planIdentifier);
+		 if($this->subscriber->subscription($user))
+			throw new Exceptions\InternalException('Subscription already exists');
 
+		$this->subscriber->subscribe($user, $planIdentifier);
+		 
 		$this->user($user);
 	}
 
 	//unsubscribes a user to a specific plan
 	public function unsubscribe($planIdentifier)
 	{
+		if(is_null($this->subscription))
+			throw new Exceptions\SubscriptionException('No Subscription exists');
+
 		return $this->subscriber->unsubscribe($this->user);
 	}
 	
-	public function usage()
+	public function setPeriod(PeriodInterface $period)
 	{
-		return $this->subscriber->getUserUsage($this->subscription['subscription_id'], $this->period['starts_at'], $this->period['ends_at']);
+		$this->period = ['starts_at' => $period->start(), 'ends_at' => $period->end()];
+
+		return $this;
 	}
 
-	public function period($startDate, $endDate)
+	public function addPeriod(PeriodInterface $period)
 	{
-		$this->periodRepo->store($this->subscription['subscription_id'], $startDate, $endDate);
+		if(is_null($this->subscription))
+			throw new Exceptions\SubscriptionException('No Subscription exists');
+
+		$this->periodRepo->unsetPeriod($this->subscription['id']);
+
+		$this->periodRepo->store($this->subscription['id'], $period->start(), $period->end());
 
 		return $this->user($this->user);
 	}
 
-	public function updatePeriod($startDate, $endDate)
+	public function attempt($identifier, $count = 1)
 	{
-		$this->periodRepo->unsetPeriod($this->subscription['subscription_id']);
+		if(is_null($this->subscription))
+			throw new Exceptions\SubscriptionException('No Subscription exists');
 
-		$this->period($startDate, $endDate);
+		$this->limiter->attempt($this->subscription['id'], $identifier, $count, $this->period['starts_at'], $this->period['ends_at']);
+
+		$this->attempts[$identifier] = $count;
 	}
 
-	public function can($identifier, $count = 1, $reduce = true)
+	public function can($identifier, $quantity = 0)
 	{
-		$limit = $this->redis->hashGet("throttle:hashes:limit:{$identifier}", $this->user);
-	
-		if($limit === false)
-		{
-	 		$limit = $this->subscriber->left($this->subscription['subscription_id'], $identifier, $this->period['starts_at'], $this->period['ends_at']);
+		return $this->attempts[$identifier] > $quantity;
+	}
 
-			if(! is_null($limit)) 
-			{
-				$limit = $limit - $this->usages[$identifier];
-			}
-		
-			$this->redis->hashSet("throttle:hashes:limit:{$identifier}", $this->user, $limit);
-		}
-		
-		if($limit === "" or is_null($limit)) 
-		{
-			return true;
-		}
+	public function consume($identifier, $quantity = 1)
+	{
+		$this->attempts[$identifier] -= $quantity;
+	}
 
-		else if($limit >= $count)
-		{
-			if($reduce === true)
-			{
-				$this->redis->hashIncrement("throttle:hashes:limit:{$identifier}", $this->user, -($count));
-			}
+	public function softAttempt($identifier, $count = 1)
+	{
+		if(is_null($this->subscription))
+			throw new Exceptions\SubscriptionException('No Subscription exists');
 
-			return true;
-		}
-		else
-		{
-			return false;
-		}
+		$this->attempts[$identifier] = $this->limiter->softAttempt($this->subscription['id'], $identifier, $count, $this->period['starts_at'], $this->period['ends_at']);
 	}
 
 	public function bill()
 	{
+		if(is_null($this->subscription))
+			throw new Exceptions\SubscriptionException('No Subscription exists');
+
 		return $this->biller->bill($this->user, $this->period['starts_at'], $this->period['ends_at']);
 	}
 
@@ -168,43 +146,28 @@ class Throttle {
 	}
 
 	//increments usage of a particular identifier
-	public function increment($identifier, $quantity = 1)
+	public function hit($identifier, $quantity = 1)
 	{
-		return $this->subscriber->increment($this->subscription['subscription_id'], $identifier, $quantity);
-	}
-	
-	public function plan($plan)
-	{
-		return $this->plan->add($plan);
+		if(is_null($this->subscription))
+			throw new Exceptions\SubscriptionException('No Subscription exists');
+
+		$this->subscriber->increment($this->subscription['id'], $identifier, $quantity);
 	}
 
-	public function unsetLimit($identifier)
+	//increments usage of a particular identifier
+	public function redeem()
 	{
-		$this->redis->hashUnset("throttle:hashes:limit:{$identifier}", $this->getUser());
-	}
-
-	public function flush()
-	{
-		$usages = $this->getUsages();
-	
-		foreach($usages as $entity => $value) 
+		foreach($this->attempts as $identifier => $quantity)
 		{
-			if($value !== 0)
+			if($quantity > 0)
 			{
-				$this->increment($entity, $value);			
+				$this->hit($identifier, -1 * $quantity);	
 			}
-
-			$this->unsetLimit($entity);
 		}
 	}
-
-	public function addPack($packId, $units)
+	
+	public function addPlan($plan)
 	{
-		$this->pack->addPackForUser($packId, $this->subscription['subscription_id'], $units);
-	}
-
-	public function removePack($packId, $units)
-	{
-		$this->pack->removePacksForUser($packId, $this->subscription['subscription_id'], $units);
+		return $this->plan->add($plan);
 	}
 }

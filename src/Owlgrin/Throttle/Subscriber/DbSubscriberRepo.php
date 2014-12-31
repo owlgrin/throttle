@@ -8,7 +8,7 @@ use Owlgrin\Throttle\Plan\PlanRepo;
 use Owlgrin\Throttle\Feature\FeatureRepo;
 use Owlgrin\Throttle\Period\PeriodInterface;
 use Owlgrin\Throttle\Exceptions;
-use Exception, Config;
+use PDOException, Config;
 
 class DbSubscriberRepo implements SubscriberRepo {
 
@@ -21,6 +21,35 @@ class DbSubscriberRepo implements SubscriberRepo {
 		$this->db = $db;
 		$this->planRepo = $planRepo;
 		$this->featureRepo = $featureRepo;
+	}
+
+	public function all()
+	{
+		try
+		{
+			return $this->db->table(Config::get('throttle::tables.subscriptions'))
+							->where('is_active', true)
+							->select('id', 'user_id', 'plan_id', 'subscribed_at')
+							->get();
+		}
+		catch(PDOException $e)
+		{
+			throw new Exceptions\InternalException;
+		}
+	}
+
+	public function getAllUserIds()
+	{
+		try
+		{
+			return $this->db->table(Config::get('throttle::tables.subscriptions'))
+							->where('is_active', true)
+							->lists('user_id');
+		}
+		catch(PDOException $e)
+		{
+			throw new Exceptions\InternalException;
+		}
 	}
 
 	public function subscribe($userId, $planIdentifier)
@@ -57,144 +86,126 @@ class DbSubscriberRepo implements SubscriberRepo {
 			//commition the work after processing
 			$this->db->commit();
 		}
-		catch(\Exception $e)
+		catch(PDOException $e)
 		{
 			//rollback if failed
 			$this->db->rollback();
-			dd($e->getMessage());
-			throw new Exceptions\InvalidInputException;
-		}
 
+			throw new Exceptions\InternalException("Something went wrong with database");	
+		}
 	}
 
 	//unsubscribe the user
 	public function unsubscribe($userId)
 	{
-		$this->db->table(Config::get('throttle::tables.subscriptions'))
-			->where('user_id', $userId)
-			->where('is_active', '1')
-			->update(['is_active' => '0']);
+		try
+		{
+			$this->db->table(Config::get('throttle::tables.subscriptions'))
+				->where('user_id', $userId)
+				->where('is_active', '1')
+				->update(['is_active' => '0']);
+		}
+		catch(PDOException $e)
+		{
+			//rollback if failed
+			$this->db->rollback();
+
+			throw new Exceptions\InternalException("Something went wrong with database");	
+		}
 	}
 
 	public function addInitialUsageForFeatures($subscriptionId, $planId)
 	{
-		//INSERT into user_feature_usage(`subscription_id`, `feature_id`, `used_quantity`, `date`)
-		//we are insering into user_feature table's specific columns 
-		//SELECT $subscriptionId, `feature_id`, 0, now() 
-		//by selecting a subscriptioniD, many features as per plan , initial usage is 0
-		//date is Today
-		//from `plan_feature` where `plan_id` = $planId
-		//from plan_features tables  
-		//GROUP BY `feature_id`
-		//feature_id is grouped
-		return $this->db->insert( $this->db->raw("INSERT into ".Config::get('throttle::tables.user_feature_usage')."(`subscription_id`, `feature_id`, `used_quantity`, `date`) SELECT :subscriptionId, `feature_id`, 0, now() from ".Config::get('throttle::tables.plan_feature')." where `plan_id` = :planId GROUP BY `feature_id`"), [ 'subscriptionId' => $subscriptionId, 'planId' => $planId ]);
+		try
+		{
+			/*
+				INSERT into user_feature_usage(`subscription_id`, `feature_id`, `used_quantity`, `date`)
+					SELECT $subscriptionId, `feature_id`, 0, now()
+					FROM `plan_feature` where `plan_id` = $planId
+					GROUP BY `feature_id`
+			*/
+			return $this->db->insert( $this->db->raw("INSERT into ".Config::get('throttle::tables.user_feature_usage').
+				"(`subscription_id`, `feature_id`,`used_quantity`, `date`) SELECT :subscriptionId, `feature_id`, 0, now() 
+				from ".Config::get('throttle::tables.plan_feature')." where `plan_id` = :planId GROUP BY `feature_id`"), 
+				[ 'subscriptionId' => $subscriptionId, 'planId' => $planId ]);
+		}
+		catch(PDOException $e)
+		{
+			throw new Exceptions\InternalException("Something went wrong with database");	
+		}
 	}
 
 	private function addInitialLimitForFeatures($subscriptionId, $planId)
 	{
-		//INSERT into user_feature_limit(`subscription_id`, `feature_id`, `limit`) 
-		//SELECT $subscriptionId, `feature_id` as featureId,
-		//here we are selecting a common subscription id
-		//distinct feature id
-		//and limit 
-		//IF(`limit` IS NULL, NULL, SUM(`limit`)) AS `limit` 
-		//if limit is null then return null
-		//else return sum(limit)
-		//FROM (SELECT `feature_id`, `limit` FROM `plan_feature` WHERE `plan_id` = $planId ORDER BY `tier` DESC) AS `t1`\
-		//we are selecting feature_id and limit in desending order
-		//so as if the null is present in the limit it will come at the top
-		//IF() condition in sql checks only top values
-		// GROUP BY `feature_id`
-		// grouping feature_ids
-		return $this->db->insert( $this->db->raw("INSERT into ".Config::get('throttle::tables.user_feature_limit')."(`subscription_id`, `feature_id`, `limit`) SELECT :subscriptionId, `feature_id` as featureId, IF(`limit` IS NULL, NULL, SUM(`limit`)) AS `limit` FROM (SELECT `feature_id`, `limit` FROM ".Config::get('throttle::tables.plan_feature')." WHERE `plan_id` = :planId ORDER BY `tier` DESC) AS `t1` GROUP BY `feature_id`"), ['subscriptionId' => $subscriptionId, 'planId' => $planId]);
-	}
-
-	//increments usage of a feature by featureid
-	public function incrementUsage($subscriptionId, $featureId, $incrementCount = 1)
-	{
 		try
 		{
-			if(! $this->checkFeatureLimit($subscriptionId, $featureId, $incrementCount))
-			{
-				throw new Exceptions\LimitExceededException;
-			}			
-
-			$today = Carbon::today()->toDateString();
-			$update = $this->db->table(Config::get('throttle::tables.user_feature_usage'))
-				->where('subscription_id', $subscriptionId)
-				->where('feature_id', $featureId)
-				->where('date', $today)
-				->increment('used_quantity', $incrementCount);
-
-			if($update == 0)
-			{
-				$this->addUsageByFeatureId($subscriptionId, $featureId, $incrementCount);		
-			}
+			/*
+				INSERT into user_feature_limit(`subscription_id`, `feature_id`, `limit`) 
+					SELECT $subscriptionId, `feature_id` as featureId,
+					IF(`limit` IS NULL, NULL, SUM(`limit`)) AS `limit` -- if limit is null, return null, else sum of limit of all tiers --
+						FROM (SELECT `feature_id`, `limit` FROM `plan_feature` WHERE `plan_id` = $planId ORDER BY `tier` DESC) AS `t1`
+						 -- we are selecting feature_id and limit in desending order
+						 -- so, if the null is present in the limit it will come at the top
+						 -- and IF() condition in sql checks only top values
+						GROUP BY `feature_id`
+			*/
+			return $this->db->insert( $this->db->raw("INSERT into ".Config::get('throttle::tables.user_feature_limit').
+				"(`subscription_id`, `feature_id`, `limit`) SELECT :subscriptionId, `feature_id` as featureId, 
+				IF(`limit` IS NULL, NULL, SUM(`limit`)) AS `limit` FROM (SELECT `feature_id`, `limit` FROM 
+				".Config::get('throttle::tables.plan_feature')." WHERE `plan_id` = :planId ORDER BY `tier` DESC) AS 
+				`t1` GROUP BY `feature_id`"), ['subscriptionId' => $subscriptionId, 'planId' => $planId]);
 		}
-		catch(Exceptions\LimitExceededException $e)
+		catch(PDOException $e)
 		{
-	        throw new Exceptions\InternalException('exceptions.repo.unknown');
+			throw new Exceptions\InternalException("Something went wrong with database");	
 		}
-		catch(\Exception $e)
-		{
-			throw new Exceptions\InternalException;
-		}
-	}
-
-	//check whether a user can access a feature or not by featureId
-	public function checkFeatureLimit($subscriptionId, $featureId, $incrementCount)
-	{
-		$limit = $this->db->table(Config::get('throttle::tables.user_feature_usage').' AS ufu')
-			->join(Config::get('throttle::tables.user_feature_limit').' as ufl', function($join)
-			{
-				$join->on('ufu.subscription_id', '=', 'ufl.subscription_id');
-				$join->on('ufu.feature_id', '=', 'ufl.feature_id');
-			})
-			->where('ufu.subscription_id', $subscriptionId)
-			->where('ufu.feature_id', $featureId)
-			->select($this->db->raw('sum( ufu.used_quantity ) AS used, ufl.limit AS fLimit'))
-			->first();
-	
-		if(! is_null($limit->fLimit))
-		{
-			return $limit->fLimit > $limit->used+$incrementCount;
-		}
-
-		return true;
-	}
-	
-	//manually adds usage of a subsription 
-	private function addUsageByFeatureId($subscriptionId, $featureId, $usedQuantity)
-	{
-		$this->db->table(Config::get('throttle::tables.user_feature_usage'))->insert(
-		[
-			'subscription_id' 	=> $subscriptionId,
-			'feature_id'    	=> $featureId,
-			'used_quantity' 	=> $usedQuantity,
-			'date'    			=> $this->db->raw('now()')
-		]);			
-	}
-
-	//manually setts limit of a subscription
-	public function setLimit($subscriptionId, $featureId, $limit)
-	{
-		$this->db->table(Config::get('throttle::tables.user_feature_limit'))
-			->where('subscription_id', $subscriptionId)
-			->where('feature_id', $featureId)
-			->update(['limit' => $limit]);
 	}
 
 	//manually increment limit of a subscription
 	public function incrementLimit($subscriptionId, $featureId, $value)
 	{
-		$this->db->table(Config::get('throttle::tables.user_feature_limit'))
-			->where('subscription_id', $subscriptionId)
-			->where('feature_id', $featureId)
-			->increment('limit', $value);
+		try
+		{
+			$this->db->table(Config::get('throttle::tables.user_feature_limit'))
+				->where('subscription_id', $subscriptionId)
+				->where('feature_id', $featureId)
+				->increment('limit', $value);
+		}
+		catch(PDOException $e)
+		{
+			throw new Exceptions\InternalException("Something went wrong with database");	
+		}
+	}
+
+	public function seedPreparedUsages($usages)
+	{
+		try
+		{
+			/*
+				insert ignore into _throttle_user_feature_usage (subscription_id, feature_id, used_quantity, date)
+				values (1, 1, 0, '2014-12-20'), (1, 1, 0, '2014-12-20'), (1, 1, 0, '2014-12-20'), (1, 1, 0, '2014-12-20')
+			 */
+			$values = [];
+			foreach($usages as $usage)
+			{
+				$values[] = "({$usage['subscription_id']}, {$usage['feature_id']}, {$usage['used_quantity']}, '{$usage['date']}')";
+			}
+
+			return $this->db->insert('
+					insert ignore into `'.Config::get('throttle::tables.user_feature_usage').'`
+					(`subscription_id`, `feature_id`, `used_quantity`, `date`)
+					values '.implode(',', $values)
+				);
+		}
+		catch(PDOException $e)
+		{
+			throw new Exceptions\InternalException;
+		}
 	}
 
 	//returns usage of the user
 	public function getUsage($userId, $startDate, $endDate)
+<<<<<<< HEAD
 	{	
 		//if end date is then then end date id today
 		$endDate = is_null($endDate) ? Carbon::today()->toDateTimeString(): $endDate;
@@ -216,44 +227,60 @@ class DbSubscriberRepo implements SubscriberRepo {
 			->join(Config::get('throttle::tables.features').' as f','f.id', '=', 'tfl.feature_id')
 			->select(\DB::raw('f.identifier as identifier, tfl.limit'))
 			->get();
+=======
+	{
+		try
+		{
+			//if end date is then then end date id today
+			$endDate = is_null($endDate) ? Carbon::today()->toDateTimeString(): $endDate;
+
+			return $this->db->select('
+					select 
+						`s`.`plan_id`, `ufu`.`feature_id`,
+						case `f`.`aggregator`
+							when \'max\' then max(`ufu`.`used_quantity`)
+							when \'sum\' then sum(`ufu`.`used_quantity`)
+						end as `used_quantity`
+					from 
+						`'.Config::get('throttle::tables.user_feature_usage').'` as `ufu` 
+						inner join `'.Config::get('throttle::tables.subscriptions').'` as `s`
+						inner join `'.Config::get('throttle::tables.features').'` as `f`
+					on
+						`s`.`id` = `ufu`.`subscription_id`
+						and `f`.`id` = `ufu`.`feature_id`
+					where
+						`ufu`.`date` >= :start_date
+						and `ufu`.`date` <= :end_date
+						and `s`.`user_id` = :user_id
+					group by `f`.`id`
+				', [
+					':start_date' => $startDate,
+					':end_date' => $endDate,
+					':user_id' => $userId
+				]);
+		}
+		catch(PDOException $e)
+		{
+			throw new Exceptions\InternalException("Something went wrong with database");
+		}
+>>>>>>> 22f18b4d14d99c79c21c42cfc969410987a98e39
 	}
 
 	//returns subscription of a user
 	public function subscription($userId)
-	{
-		$user = $this->db->table(Config::get('throttle::tables.subscriptions'))
-			->where('user_id', $userId)
-			->where('is_active', '1')
-			->select('id AS subscription_id', 'plan_id', 'subscribed_at')
-			->first();
-
-		return $user;
-	}
-
-	//check whether a user can access a feature or not by identifier
-	public function can($subscriptionId, $identifier, $incrementCount)
-	{
-		$limit = $this->db->table(Config::get('throttle::tables.user_feature_usage').' AS ufu')
-			->join(Config::get('throttle::tables.user_feature_limit').' as ufl', function($join)
-			{
-				$join->on('ufu.subscription_id', '=', 'ufl.subscription_id');
-				$join->on('ufu.feature_id', '=', 'ufl.feature_id');
-			})
-			->join(Config::get('throttle::tables.features').' as f', function($join)
-			{
-				$join->on('f.id', '=', 'ufu.feature_id');
-			})
-			->where('ufu.subscription_id', $subscriptionId)
-			->where('f.identifier', $identifier)
-			->select($this->db->raw('sum( ufu.used_quantity ) AS used, ufl.limit AS fLimit'))
-			->first();
-
-		if(! is_null($limit['fLimit']))
+	{	
+		try
 		{
-			return $limit['fLimit'] >= $limit['used']+$incrementCount;
+			return $this->db->table(Config::get('throttle::tables.subscriptions'))
+				->where('user_id', $userId)
+				->where('is_active', '1')
+				->select('id', 'user_id', 'plan_id', 'subscribed_at')
+				->first();
 		}
-
-		return true;
+		catch(PDOException $e)
+		{
+			throw new Exceptions\InternalException("Something went wrong with database");	
+		}
 	}
 
 	//increments usage of a feature by identifier
@@ -261,11 +288,6 @@ class DbSubscriberRepo implements SubscriberRepo {
 	{
 		try
 		{
-			if(! $this->can($subscriptionId, $identifier, $count))
-			{
-				throw new Exceptions\LimitExceededException;
-			}			
-
 			$today = Carbon::today()->toDateString();
 
 			$update = $this->db->table(Config::get('throttle::tables.user_feature_usage').' AS ufu')
@@ -275,86 +297,62 @@ class DbSubscriberRepo implements SubscriberRepo {
 				->where('ufu.date', $today)
 				->increment('ufu.used_quantity', $count);
 
-			if($update == 0)
+			//count should not be equal to zero 
+			//we dont want to create entry of those feature whose count is zero
+			if($update == 0 and $count != 0)
 			{
 				$this->addUsageByFeatureIdentifier($subscriptionId, $identifier, $count);
 			}
 		}
-		catch(Exceptions\LimitExceededException $e)
+		catch(PDOException $e)
 		{
-			throw new Exceptions\LimitExceededException;
-		}
-		catch(\Exception $e)
-		{
-			throw new Exceptions\InternalException;
+			throw new Exceptions\InternalException("Something went wrong with database");	
 		}
 	}
 
 	//add usage of a feature identifier
 	private function addUsageByFeatureIdentifier($subscriptionId, $identifier, $usedQuantity)
 	{
-		$this->db->table(Config::get('throttle::tables.user_feature_usage'))->insert(
-		[
-			'subscription_id' 	=> $subscriptionId,
-			'feature_id'    	=> $this->db->raw("(select id from ". Config::get('throttle::tables.features') ." where identifier = '$identifier')"),
-			'used_quantity' 	=> $usedQuantity,
-			'date'    			=> $this->db->raw('now()')
-		]);
+		try
+		{
+			$this->db->table(Config::get('throttle::tables.user_feature_usage'))->insert(
+				[
+					'subscription_id' 	=> $subscriptionId,
+					'feature_id'    	=> $this->db->raw("(select id from ". Config::get('throttle::tables.features') ." where identifier = '$identifier')"),
+					'used_quantity' 	=> $usedQuantity,
+					'date'    			=> $this->db->raw('now()')
+				]
+			);
+		}
+		catch(PDOException $e)
+		{
+			throw new Exceptions\InternalException("Something went wrong with database");	
+		}
 	}
 
 	//returns limit of a feature left
+
 	public function left($subscriptionId, $identifier, $start, $end)
 	{	
-		$limit = $this->db->table(Config::get('throttle::tables.user_feature_usage').' AS ufu')
-			->join(Config::get('throttle::tables.user_feature_limit').' as ufl', function($join)
-			{
-				$join->on('ufu.subscription_id', '=', 'ufl.subscription_id');
-				$join->on('ufu.feature_id', '=', 'ufl.feature_id');
-			})
-			->join(Config::get('throttle::tables.features').' as f', function($join)
-			{
-				$join->on('f.id', '=', 'ufu.feature_id');
-			})
-			->where('ufu.subscription_id', $subscriptionId)
-			->where('f.identifier', $identifier)
-			->whereBetween('date', [$start, $end])
-			->select($this->db->raw('ifnull(sum( ufu.used_quantity ), 0) AS used, ufl.limit AS fLimit'))
-			->first();
-
-		if(! is_null($limit['fLimit']))
+		try
 		{
-			return $limit['fLimit'] - $limit['used'];
-		}
+			$limit = $this->db->table(Config::get('throttle::tables.user_feature_usage').' AS ufu')
+				->join(Config::get('throttle::tables.user_feature_limit').' as ufl', function($join)
+				{
+					$join->on('ufu.subscription_id', '=', 'ufl.subscription_id');
+					$join->on('ufu.feature_id', '=', 'ufl.feature_id');
+				})
+				->join(Config::get('throttle::tables.features').' as f', function($join)
+				{
+					$join->on('f.id', '=', 'ufu.feature_id');
+				})
+				->where('ufu.subscription_id', $subscriptionId)
+				->where('f.identifier', $identifier)
+				->whereBetween('date', [$start, $end])
+				->select($this->db->raw('ifnull(sum( ufu.used_quantity ), 0) AS used, ufl.limit AS fLimit'))
+				->first();
 
-		return null;
-	}
-
-	public function findLeftUsages($subscriptionId, $identifier, $startDate, $endDate)
-	{
-		return $this->db->table(Config::get('throttle::tables.user_feature_usage').' AS ufu')
-			->join(Config::get('throttle::tables.features').' as f', function($join)
-			{
-				$join->on('f.id', '=', 'ufu.feature_id');
-			})
-			->where('ufu.subscription_id', $subscriptionId)
-			->where('f.identifier', $identifier)
-			->whereBetween('date', [$startDate, $endDate])
-			->select($this->db->raw('ifnull(sum( ufu.used_quantity ), 0) AS used'))
-			->first();
-	}
-
-	public function getUserUsage($subscriptionId, $startDate, $endDate)
-	{	
-		return $this->db->table(Config::get('throttle::tables.user_feature_limit') .' as ufl')
-			->leftJoin(Config::get('throttle::tables.features'). ' as f', 'ufl.feature_id', '=', 'f.id')
-			->leftJoin(Config::get('throttle::tables.user_feature_usage'). ' as ufu', 'ufl.feature_id', '=', 'ufu.feature_id')
-			->where('ufl.subscription_id', $subscriptionId)
-			->whereBetween('ufu.date', [$startDate, $endDate])
-			->select(\DB::raw('f.id as feature_id, f.identifier as feature_identifier, f.name as feature_name, ufl.limit as feature_limit, SUM(ufu.used_quantity) as feature_usage'))
-			->groupBy('ufu.feature_id')
-			->get();
-	}
-
+<<<<<<< HEAD
 
 	public function getUserFeaturesLimit($subscriptionId)
 	{
@@ -364,27 +362,42 @@ class DbSubscriberRepo implements SubscriberRepo {
 			->select('f.id as feature_id', 'f.name as feature_name', 'ufl.limit as feature_limit')
 			->get();
 	}
+=======
+				if(! is_null($limit['fLimit']))
+				{
+					return $limit['fLimit'] - $limit['used'];
+				}
+>>>>>>> 22f18b4d14d99c79c21c42cfc969410987a98e39
 
-	//returns usage of the user
-	public function getLimitByIdentifier($subscriptionId, $identifier)
-	{
-		return $this->db->table(Config::get('throttle::tables.user_feature_limit').' as tfl')
-			->join(Config::get('throttle::tables.features').' as f','f.id', '=', 'tfl.feature_id')
-			->where('f.identifier', $identifier) 
-			->select('tfl.limit')
-			->first();
+			return null;
+		}
+		catch(PDOException $e)
+		{
+			throw new Exceptions\InternalException("Something went wrong with database");	
+		}
 	}
 
 	public function canReduceLimit($subscriptionId, $featureId, $limit)
 	{
-		$feature = $this->db->select("SELECT * FROM ".Config::get('throttle::tables.user_feature_limit')." WHERE `subscription_id` = ".$subscriptionId." AND feature_id = ".$featureId." AND `limit` >= ((SELECT `used_quantity` FROM ".Config::get('throttle::tables.user_feature_usage')." WHERE `subscription_id` = ".$subscriptionId." AND `feature_id` = ".$featureId.") + ".$limit.")");
-	
-		if($feature)
+		try
 		{
-			return true;
-		}
+			$feature = $this->db->select("SELECT * FROM ".Config::get('throttle::tables.user_feature_limit')." WHERE `subscription_id` = ".$subscriptionId." AND feature_id = ".$featureId." AND `limit` >= ((SELECT `used_quantity` FROM ".Config::get('throttle::tables.user_feature_usage')." WHERE `subscription_id` = ".$subscriptionId." AND `feature_id` = ".$featureId.") + ".$limit.")");
+		
+			if($feature)
+			{
+				return true;
+			}
 
-		return false;
+			return false;
+		}
+		catch(PDOException $e)
+		{
+			throw new Exceptions\InternalException("Something went wrong with database");	
+		}
 	}
+<<<<<<< HEAD
 
 }
+=======
+}
+>>>>>>> 22f18b4d14d99c79c21c42cfc969410987a98e39
