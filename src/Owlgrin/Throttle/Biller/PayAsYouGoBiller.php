@@ -2,16 +2,19 @@
 
 use Owlgrin\Throttle\Biller\Biller;
 use Owlgrin\Throttle\Subscriber\SubscriberRepo;
+use Owlgrin\Throttle\Feature\FeatureRepo;
 use Owlgrin\Throttle\Pack\PackRepo as Pack;
 
 class PayAsYouGoBiller implements Biller{
 
 	protected $subscription;
+	protected $feature;
 	protected $pack;
 
-	public function __construct(SubscriberRepo $subscription, Pack $pack)
+	public function __construct(SubscriberRepo $subscription, Pack $pack, FeatureRepo $feature)
 	{
 		$this->subscription = $subscription;
+		$this->feature = $feature;
 		$this->pack = $pack;
 	}
 
@@ -61,7 +64,7 @@ class PayAsYouGoBiller implements Biller{
 	private function getTierByFeature($planId, $featureId)
 	{
 		//finding limit of the feature
-		return $this->subscription->featureLimit($planId, $featureId);
+		return $this->feature->featureLimit($planId, $featureId);
 	}
 
 	private function calculateByTier($tiers, $featureId, $usage, $userId = null)

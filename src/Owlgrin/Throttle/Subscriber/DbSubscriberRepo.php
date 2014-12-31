@@ -195,7 +195,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 
 	//returns usage of the user
 	public function getUsage($userId, $startDate, $endDate)
-	{
+	{	
 		//if end date is then then end date id today
 		$endDate = is_null($endDate) ? Carbon::today()->toDateTimeString(): $endDate;
 		

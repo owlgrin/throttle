@@ -49,7 +49,8 @@ class DbPackRepo implements PackRepo {
 			//starting a transition
 			$this->db->beginTransaction();
 
-			$pack = $this->find($packId);
+			// $pack = $this->find($packId);
+			$pack = $this->isPackExists($packId);
 
 			$subscriptionPeriod = $this->period->getPeriodBySubscription($subscriptionId);
 
@@ -89,7 +90,9 @@ class DbPackRepo implements PackRepo {
 
 			if($pack === null)
 			{
-				return false;
+				// return false;
+				throw new Exceptions\InvalidInputException;
+				
 			}
 
 			return true;
