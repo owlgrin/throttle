@@ -205,29 +205,6 @@ class DbSubscriberRepo implements SubscriberRepo {
 
 	//returns usage of the user
 	public function getUsage($userId, $startDate, $endDate)
-<<<<<<< HEAD
-	{	
-		//if end date is then then end date id today
-		$endDate = is_null($endDate) ? Carbon::today()->toDateTimeString(): $endDate;
-		
-		return $this->db->table(Config::get('throttle::tables.user_feature_usage').' as u')
-			->join(Config::get('throttle::tables.subscriptions').' as s','s.id', '=', 'u.subscription_id')
-			->where('u.date', '>=', $startDate)
-			->where('u.date', '<=', $endDate)
-			->where('s.user_id', '=', $userId)
-			->select(\DB::raw('plan_id, feature_id, SUM(used_quantity) as used_quantity'))
-			->groupBy('feature_id')
-			->get();
-	}
-
-	//returns usage of the user
-	public function getLimit($subscriptionId)
-	{
-		return $this->db->table(Config::get('throttle::tables.user_feature_limit').' as tfl')
-			->join(Config::get('throttle::tables.features').' as f','f.id', '=', 'tfl.feature_id')
-			->select(\DB::raw('f.identifier as identifier, tfl.limit'))
-			->get();
-=======
 	{
 		try
 		{
@@ -263,7 +240,6 @@ class DbSubscriberRepo implements SubscriberRepo {
 		{
 			throw new Exceptions\InternalException("Something went wrong with database");
 		}
->>>>>>> 22f18b4d14d99c79c21c42cfc969410987a98e39
 	}
 
 	//returns subscription of a user
@@ -352,22 +328,11 @@ class DbSubscriberRepo implements SubscriberRepo {
 				->select($this->db->raw('ifnull(sum( ufu.used_quantity ), 0) AS used, ufl.limit AS fLimit'))
 				->first();
 
-<<<<<<< HEAD
 
-	public function getUserFeaturesLimit($subscriptionId)
-	{
-		return $this->db->table(Config::get('throttle::tables.user_feature_limit') .' as ufl')
-			->join(Config::get('throttle::tables.features'). ' as f', 'ufl.feature_id', '=', 'f.id')
-			->where('subscription_id', $subscriptionId)
-			->select('f.id as feature_id', 'f.name as feature_name', 'ufl.limit as feature_limit')
-			->get();
-	}
-=======
 				if(! is_null($limit['fLimit']))
 				{
 					return $limit['fLimit'] - $limit['used'];
 				}
->>>>>>> 22f18b4d14d99c79c21c42cfc969410987a98e39
 
 			return null;
 		}
@@ -395,9 +360,4 @@ class DbSubscriberRepo implements SubscriberRepo {
 			throw new Exceptions\InternalException("Something went wrong with database");	
 		}
 	}
-<<<<<<< HEAD
-
 }
-=======
-}
->>>>>>> 22f18b4d14d99c79c21c42cfc969410987a98e39
