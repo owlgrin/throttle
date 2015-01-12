@@ -3,7 +3,11 @@
 use Illuminate\Console\Command;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputArgument;
+
 use Owlgrin\Throttle\Subscriber\SubscriberRepo;
+use Owlgrin\Throttle\Period\PeriodRepo;
+use Owlgrin\Throttle\Period\CurrentSubscriptionPeriod;
+
 use Config;
 
 /**
@@ -17,6 +21,7 @@ class UserSubscribeCommand extends Command {
 	 * @var string
 	 */
 	protected $name = 'throttle:subscribe';
+	protected $periodRepo;	
 
 	/**
 	 * The console command description.
@@ -32,18 +37,22 @@ class UserSubscribeCommand extends Command {
 	 */
 	protected $subscription;
 
-	public function __construct(SubscriberRepo $subscription)
+	public function __construct(SubscriberRepo $subscription, PeriodRepo $periodRepo, CurrentSubscriptionPeriod $period)
 	{
  		parent::__construct();
 		$this->subscription  = $subscription;
+		$this->periodRepo = $periodRepo;
+		$this->period = $period;
 	}
 
 	public function fire()
 	{
 		$userId = $this->option('user');
 		$planIdentifier = $this->option('plan');
-		
-		$this->subscription->subscribe($userId, $planIdentifier);
+
+		$subscriptionId = $this->subscription->subscribe($userId, $planIdentifier);
+
+		$this->periodRepo->store($subscriptionId, $this->period->start(), $this->period->end());
 		
 		$this->info('User With id '.$userId.' is subscribed to plan with identifier '.$planIdentifier);
 	}
