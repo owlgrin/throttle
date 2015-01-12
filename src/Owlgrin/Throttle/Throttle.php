@@ -77,7 +77,7 @@ class Throttle {
 	}
 
 	//unsubscribes a user to a specific plan
-	public function unsubscribe($planIdentifier)
+	public function unsubscribe()
 	{
 		if(is_null($this->subscription))
 			throw new Exceptions\SubscriptionException('No Subscription exists');
