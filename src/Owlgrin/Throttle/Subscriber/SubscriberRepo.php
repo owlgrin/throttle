@@ -6,7 +6,6 @@ interface SubscriberRepo {
 	public function getAllUserIds();
 	public function subscribe($userId, $planIdentifier);
 	public function getUsage($subscriptionId, $startDate, $endDate);
-	public function seedPreparedUsages($preparedUsages);
 	public function subscription($userId);
 	public function increment($subscriptionId, $identifier, $count);
 	public function left($subscriptionId, $identifier, $start, $left);

@@ -3,6 +3,7 @@
 use Illuminate\Console\Command;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputArgument;
+use Owlgrin\Throttle\Period\ManualSubscriptionPeriod;
 
 use Throttle;
 
@@ -38,18 +39,40 @@ class GetUsageOfUserCommand extends Command {
 
 	public function fire()
 	{
-		$userId = $this->option('user');
+		$userId = $this->argument('user');
 
-		$usages = Throttle::user($userId)->getUsage();
+		$startDate = $this->option('start_date');
+		$endDate = $this->option('end_date');
+
+		$usages = $this->getUsage($userId, $startDate, $endDate);
 
 		$this->info('User With id '.$userId.' has a usages of');
+
 		print_r($usages);
+	}
+
+	protected function getUsage($userId, $startDate, $endDate)
+	{
+		if($startDate == null and $endDate == null)
+		{
+			return Throttle::user($userId)->getUsage();			
+		}
+		
+		return Throttle::user($userId)->getUsage(new ManualSubscriptionPeriod($startDate, $endDate));			
+	}
+
+	protected function getArguments()
+	{
+		return array(
+			array('user', InputArgument::REQUIRED, 'The id of the user whose usage to show')
+		);
 	}
 
 	protected function getOptions()
 	{
 		return array(
-			array('user', null, InputOption::VALUE_OPTIONAL, 'The id of the user whose usage to show', null)
+			array('start_date', null, InputOption::VALUE_OPTIONAL, 'The start date of the usage.', null),
+			array('end_date', null, InputOption::VALUE_OPTIONAL, 'The end date of the usage.', null)
 		);
 	}
 }

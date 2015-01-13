@@ -90,9 +90,8 @@ class DbSubscriberRepo implements SubscriberRepo {
 				$this->addInitialLimitForFeatures($subscriptionId, $plan['id']);
 				
 				//seeding base usages of features
-				$usages = $this->usageRepo->getBaseUsages($userId, [$this->subscription($userId)]);
-				$this->seedPreparedUsages($usages);
-
+				$this->usageRepo->seedBase($userId, [$this->subscription($userId)]);
+				
 				//adding subscription period
 				$period = new CurrentMonthPeriod();
 				$this->periodRepo->store($subscriptionId, $period->start(), $period->end());
@@ -201,32 +200,6 @@ class DbSubscriberRepo implements SubscriberRepo {
 		catch(PDOException $e)
 		{
 			throw new Exceptions\InternalException("Something went wrong with database");	
-		}
-	}
-
-	public function seedPreparedUsages($usages)
-	{
-		try
-		{
-			/*
-				insert ignore into _throttle_user_feature_usage (subscription_id, feature_id, used_quantity, date)
-				values (1, 1, 0, '2014-12-20'), (1, 1, 0, '2014-12-20'), (1, 1, 0, '2014-12-20'), (1, 1, 0, '2014-12-20')
-			 */
-			$values = [];
-			foreach($usages as $usage)
-			{
-				$values[] = "({$usage['subscription_id']}, {$usage['feature_id']}, {$usage['used_quantity']}, '{$usage['date']}')";
-			}
-
-			return $this->db->insert('
-					insert ignore into `'.Config::get('throttle::tables.user_feature_usage').'`
-					(`subscription_id`, `feature_id`, `used_quantity`, `date`)
-					values '.implode(',', $values)
-				);
-		}
-		catch(PDOException $e)
-		{
-			throw new Exceptions\InternalException;
 		}
 	}
 

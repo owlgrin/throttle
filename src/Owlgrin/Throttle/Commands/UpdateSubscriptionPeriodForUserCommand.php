@@ -59,37 +59,45 @@ class UpdateSubscriptionPeriodForUserCommand extends Command {
 	{
 		$this->info('Starting at.. ' . date('Y-m-d H:i:s'));
 
-		$users = $this->subscriptionRepo->getAllUserIds();
+		$users = $this->getUsers();
 		
 		foreach($users as $index => $user) 
-		{
-			Throttle::user($user);
-
-			$period = Throttle::getPeriod();
-
-			if( ! is_null($period))
+		{				
+			if($this->isRequiredToUpdatePeriod($user))
 			{
-				$periodEnd = Carbon::createFromFormat('Y-m-d', $period['ends_at'])->endOfDay();
-				$today = Carbon::today()->endOfDay();
-				
-				if($periodEnd->lte($today))
-				{
-					$this->info('Updating user with ID ' . $user . ' subscription period to ' . $this->currentMonthPeriod->start(true) . ' - ' . $this->currentMonthPeriod->end(true));
+				$this->info('Updating user with ID ' . $user . ' subscription period to ' . $this->currentMonthPeriod->start(true) . ' - ' . $this->currentMonthPeriod->end(true));
 
-					Throttle::addPeriod($this->currentMonthPeriod);
-				}
+				Throttle::addPeriod($this->currentMonthPeriod);
 			}
 		}
 
 		$this->info('Ending at.. ' . date('Y-m-d H:i:s'));
 	}
+
+	protected function getUsers()
+	{
+		if( ! is_null($userId = $this->option('user')))
+		{
+			return [$userId];
+		}
+
+		return $this->subscriptionRepo->getAllUserIds();
+	}
+
+	protected function isRequiredToUpdatePeriod($user)
+	{		
+		$periodEnd = Carbon::createFromFormat('Y-m-d', Throttle::user($user)->getPeriod()->end())->endOfDay();
+		$today = Carbon::today()->endOfDay();
+		
+		if($periodEnd->lte($today)) return true;
+
+		return false;		
+	}
 	
 	protected function getOptions()
 	{
 		return array(
-		// 	array('user', null, InputOption::VALUE_OPTIONAL, 'User whose subscription period to be updated', null),
-		// 	array('start_date', null, InputOption::VALUE_OPTIONAL, 'Start of period (Y-m-d format).', null),
-		// 	array('end_date', null, InputOption::VALUE_OPTIONAL, 'End of period (Y-m-d format).', null)
+			array('user', null, InputOption::VALUE_OPTIONAL, 'User whose subscription period to be updated', null)
 		);
 	}
 }

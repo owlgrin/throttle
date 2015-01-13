@@ -4,8 +4,6 @@ use Illuminate\Console\Command;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputArgument;
 
-use Owlgrin\Throttle\Period\CurrentMonthPeriod;
-
 use Throttle;
 
 /**
@@ -32,11 +30,9 @@ class UserSubscribeCommand extends Command {
 	 *
 	 * @return void
 	 */
-
-	public function __construct(CurrentMonthPeriod $period)
+	public function __construct()
 	{
  		parent::__construct();
-		$this->period = $period;
 	}
 
 	public function fire()
@@ -52,8 +48,8 @@ class UserSubscribeCommand extends Command {
 	protected function getOptions()
 	{
 		return array(
-			array('user', null, InputOption::VALUE_OPTIONAL, 'The id of the user who wants to subscribe', null),
-			array('plan', null, InputOption::VALUE_OPTIONAL, 'The plan identifier for which user wants to subscribe.', null),
+			array('user', null, InputOption::VALUE_REQUIRED, 'The id of the user who wants to subscribe', null),
+			array('plan', null, InputOption::VALUE_REQUIRED, 'The plan identifier for which user wants to subscribe.', null),
 		);
 	}
 }
