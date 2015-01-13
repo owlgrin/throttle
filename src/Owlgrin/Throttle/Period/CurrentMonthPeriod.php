@@ -15,7 +15,7 @@ class CurrentMonthPeriod implements PeriodInterface {
 	public function end($formatted = false)
 	{
 		return $formatted ? Carbon::today()->endOfMonth()->toFormattedDateString() : Carbon::today()->endOfMonth()->toDateString();
-	}	
+	}
 
 	public function isNewPeriod()
 	{

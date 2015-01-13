@@ -5,8 +5,9 @@ use Owlgrin\Throttle\Subscriber\SubscriberRepo as Subscriber;
 use Owlgrin\Throttle\Plan\PlanRepo as Plan;
 use Owlgrin\Throttle\Exceptions;
 use Owlgrin\Throttle\Period\PeriodRepo;
-use Owlgrin\Throttle\Limiter\LimiterInterface;
 use Owlgrin\Throttle\Period\PeriodInterface;
+use Owlgrin\Throttle\Limiter\LimiterInterface;
+use Owlgrin\Throttle\Period\ActiveSubscriptionPeriod;
 /**
  * The Throttle core
  */
@@ -31,13 +32,13 @@ class Throttle {
 		$this->limiter = $limiter;
 	}
 
-	//sets users details at the time of initialisation
+	//sets user's details at the time of initialisation
 	public function user($user)
 	{
 		$this->user = $user;
 		$this->subscription = $this->subscriber->subscription($this->user);
 		$this->features = $this->plan->getFeaturesByPlan($this->subscription['plan_id']);
-		$this->period = $this->periodRepo->getPeriodBySubscription($this->subscription['id']);
+		// $this->period = $this->periodRepo->getPeriodBySubscription($this->subscription['id']);
 
 		return $this;
 	}
@@ -61,7 +62,7 @@ class Throttle {
 
 	public function getPeriod()
 	{
-		return $this->period;
+		return new ActiveSubscriptionPeriod($this->subscription['id'], true);
 	}
 
 	//subscribes a user to a specific plan
@@ -78,12 +79,16 @@ class Throttle {
 	}
 
 	//unsubscribes a user to a specific plan
-	public function unsubscribe($planIdentifier)
+	public function unsubscribe($user = null)
 	{
-		if(is_null($this->subscription))
+		$user = is_null($user) ? $this->user : $user;
+
+		if(! $this->subscriber->subscription($user))
 			throw new Exceptions\SubscriptionException('No Subscription exists');
 
-		return $this->subscriber->unsubscribe($this->user);
+		$this->subscriber->unsubscribe($user);
+
+		$this->periodRepo->unsetPeriodOfUser($user);
 	}
 	
 	public function setPeriod(PeriodInterface $period)
@@ -93,14 +98,14 @@ class Throttle {
 		return $this;
 	}
 
-	public function addPeriod(PeriodInterface $period)
+	public function addPeriod(PeriodInterface $period, $subscriptionId = null)
 	{
+		$subscriptionId = is_null($subscriptionId) ? $this->subscription['id'] : $subscriptionId;
+
 		if(is_null($this->subscription))
 			throw new Exceptions\SubscriptionException('No Subscription exists');
-
-		$this->periodRepo->unsetPeriod($this->subscription['id']);
-
-		$this->periodRepo->store($this->subscription['id'], $period->start(), $period->end());
+	
+		$this->periodRepo->store($subscriptionId, $period->start(), $period->end());
 
 		return $this->user($this->user);
 	}
@@ -170,5 +175,15 @@ class Throttle {
 	public function addPlan($plan)
 	{
 		return $this->plan->add($plan);
+	}
+
+	public function getUsage($user = null, PeriodInterface $period)
+	{
+		$user = is_null($user) ? $this->user : $user;
+
+		if(! $this->subscriber->subscription($user))
+			throw new Exceptions\SubscriptionException('No Subscription exists');
+
+		return $this->subscriber->getUsage($user, $period->start(), $period->end());
 	}
 }

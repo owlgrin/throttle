@@ -17,15 +17,24 @@ class DbPeriodRepo implements PeriodRepo {
 	{
 		try
 		{
+			//starting a transition
+			$this->db->beginTransaction();
+
+			$this->unsetPeriod($subscriptionId);
+
 			return $this->db->table(Config::get('throttle::tables.subscription_period'))->insertGetId([
 				'subscription_id' => $subscriptionId,
 				'starts_at' => $startDate,
 				'ends_at' => $endDate,
 				'is_active' => 1
 			]);
+
+			$this->db->commit();
 		}
 		catch(PDOException $e)
 		{
+			$this->db->rollback();
+			
 			throw new Exceptions\InternalException("Something went wrong with database");	
 		}
 	}
@@ -59,4 +68,37 @@ class DbPeriodRepo implements PeriodRepo {
 			throw new Exceptions\InternalException("Something went wrong with database");	
 		}
 	}
+
+	public function unsetPeriodOfUser($userId)
+	{
+		try
+		{
+			$this->db->table(Config::get('throttle::tables.subscription_period').' AS sp')
+				->join(Config::get('throttle::tables.subscriptions').' AS s', 's.id', '=', 'sp.subscription_id')
+				->where('s.user_id', $userId)
+				->where('sp.is_active', 1)
+				->update(['sp.is_active' => 0]);
+		}
+		catch(PDOException $e)
+		{
+			throw new Exceptions\InternalException("Something went wrong with database");	
+		}
+	}
+
+	public function getPeriodByUser($userId)
+	{
+		try
+		{
+			return $this->db->table(Config::get('throttle::tables.subscription_period').' AS sp')
+				->join(Config::get('throttle::tables.subscriptions').' AS s', 's.id', '=', 'sp.subscription_id')
+				->where('s.user_id', $userId)
+				->where('sp.is_active', 1)
+				->first();
+		}
+		catch(PDOException $e)
+		{
+			throw new Exceptions\InternalException("Something went wrong with database");	
+		}
+	}
+
 }

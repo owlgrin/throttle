@@ -89,8 +89,11 @@ class DbSubscriberRepo implements SubscriberRepo {
 				$this->seedPreparedUsages($usages);
 			}
 
+					
 			//commition the work after processing
 			$this->db->commit();
+		
+			return $subscriptionId;
 		}
 		catch(PDOException $e)
 		{
@@ -113,9 +116,6 @@ class DbSubscriberRepo implements SubscriberRepo {
 		}
 		catch(PDOException $e)
 		{
-			//rollback if failed
-			$this->db->rollback();
-
 			throw new Exceptions\InternalException("Something went wrong with database");	
 		}
 	}
@@ -168,13 +168,15 @@ class DbSubscriberRepo implements SubscriberRepo {
 	}
 
 	//manually increment limit of a subscription
-	public function incrementLimit($subscriptionId, $featureId, $value)
+	public function incrementLimit($userId, $featureIdentifier, $value)
 	{
 		try
 		{
-			$this->db->table(Config::get('throttle::tables.user_feature_limit'))
-				->where('subscription_id', $subscriptionId)
-				->where('feature_id', $featureId)
+			$this->db->table(Config::get('throttle::tables.user_feature_limit').' AS ufl')
+				->join(Config::get('throttle::tables.features').' AS f', 'f.id', '=', 'ufl.feature_id')
+				->join(Config::get('throttle::tables.subscriptions').' AS s', 's.id', '=', 'ufl.subscription_id')
+				->where('s.user_id', $userId)
+				->where('f.identifier', $featureIdentifier)
 				->increment('limit', $value);
 		}
 		catch(PDOException $e)
@@ -318,27 +320,40 @@ class DbSubscriberRepo implements SubscriberRepo {
 	{	
 		try
 		{
-			$limit = $this->db->table(Config::get('throttle::tables.user_feature_usage').' AS ufu')
-				->join(Config::get('throttle::tables.user_feature_limit').' as ufl', function($join)
-				{
-					$join->on('ufu.subscription_id', '=', 'ufl.subscription_id');
-					$join->on('ufu.feature_id', '=', 'ufl.feature_id');
-				})
-				->join(Config::get('throttle::tables.features').' as f', function($join)
-				{
-					$join->on('f.id', '=', 'ufu.feature_id');
-				})
-				->where('ufu.subscription_id', $subscriptionId)
-				->where('f.identifier', $identifier)
-				->whereBetween('date', [$start, $end])
-				->select($this->db->raw('ifnull(sum( ufu.used_quantity ), 0) AS used, ufl.limit AS fLimit'))
-				->first();
+			$limit = $this->db->select('
+				select 
+					`ufl`.`limit`,
+					case `f`.`aggregator`
+						when \'max\' then max(`ufu`.`used_quantity`)
+						when \'sum\' then sum(`ufu`.`used_quantity`)
+					end as `used_quantity`
+				from
+					`'.Config::get('throttle::tables.user_feature_usage').'` as `ufu` 
+					inner join `'.Config::get('throttle::tables.subscriptions').'` as `s`
+					inner join `'.Config::get('throttle::tables.features').'` as `f`
+					inner join `'.Config::get('throttle::tables.user_feature_limit').'` as `ufl`
+				on
+					`ufl`.`subscription_id` = `ufu`.`subscription_id`
+					and `ufu`.`feature_id` = `ufl`.`feature_id`
+					and `f`.`id` = `ufu`.`feature_id`
+				where
+					`ufu`.`date` >= :start_date
+					and `ufu`.`date` <= :end_date
+					and `f`.`identifier` = :identifier
+					and `ufu`.`subscription_id` = :subscriptionId
+				LIMIT 1
+			', [
+				':start_date' => $start,
+				':end_date' => $end,
+				':identifier' => $identifier,
+				':subscriptionId' => $subscriptionId
+			]);
 
 
-				if(! is_null($limit['fLimit']))
-				{
-					return $limit['fLimit'] - $limit['used'];
-				}
+			if(! is_null($limit[0]['limit']))
+			{
+				return $limit[0]['limit'] - $limit[0]['used_quantity'];
+			}
 
 			return null;
 		}
