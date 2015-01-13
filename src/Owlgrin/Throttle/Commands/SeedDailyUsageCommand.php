@@ -4,7 +4,6 @@ use Illuminate\Console\Command;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputArgument;
 use Owlgrin\Throttle\Subscriber\SubscriberRepo;
-use Owlgrin\Throttle\Period\ActiveSubscriptionPeriod;
 /**
  * Command to generate the required migration
  */
@@ -30,14 +29,12 @@ class SeedDailyUsageCommand extends Command {
 	 * @return void
 	 */
 	protected $subscriber;
-	protected $period;
 
-	public function __construct(SubscriberRepo $subscriber, ActiveSubscriptionPeriod $period)
+	public function __construct(SubscriberRepo $subscriber)
 	{
  		parent::__construct();
 
  		$this->subscriber = $subscriber;
- 		$this->period = $period;
 	}
 
 	public function fire()

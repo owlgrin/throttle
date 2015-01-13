@@ -52,11 +52,44 @@ class DbPeriodRepo implements PeriodRepo {
 			$this->db->table(Config::get('throttle::tables.subscription_period'))
 				->where('subscription_id', $subscriptionId)
 				->where('status', 1)
-				->update('status', 0);
+				->update(['status' => 0]);
 		}
 		catch(PDOException $e)
 		{
 			throw new Exceptions\InternalException("Something went wrong with database");	
 		}
 	}
+
+	public function unsetPeriodOfUser($userId)
+	{
+		try
+		{
+			$this->db->table(Config::get('throttle::tables.subscription_period').' AS sp')
+				->join(Config::get('throttle::tables.subscriptions').' AS s', 's.id', '=', 'sp.subscription_id')
+				->where('s.user_id', $userId)
+				->where('sp.status', 1)
+				->update(['sp.status' => 0]);
+		}
+		catch(PDOException $e)
+		{
+			throw new Exceptions\InternalException("Something went wrong with database");	
+		}
+	}
+
+	public function getPeriodByUser($userId)
+	{
+		try
+		{
+			return $this->db->table(Config::get('throttle::tables.subscription_period').' AS sp')
+				->join(Config::get('throttle::tables.subscriptions').' AS s', 's.id', '=', 'sp.subscription_id')
+				->where('s.user_id', $userId)
+				->where('sp.status', 1)
+				->first();
+		}
+		catch(PDOException $e)
+		{
+			throw new Exceptions\InternalException("Something went wrong with database");	
+		}
+	}
+
 }

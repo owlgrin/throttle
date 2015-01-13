@@ -18,14 +18,14 @@ class PayAsYouGoBiller implements Biller{
 	/**
 	 * Calculate the bill between the given dates
 	 *
-	 * @param  integer $subscriptionId
+	 * @param  integer $userId
 	 * @param  string $startDate
 	 * @param  string $endDate
 	 * @return array
 	 */
-	public function bill($subscriptionId, $startDate, $endDate)
+	public function bill($userId, $startDate, $endDate)
 	{
-		$usages = $this->subscription->getUsage($subscriptionId, $startDate, $endDate);
+		$usages = $this->subscription->getUsage($userId, $startDate, $endDate);
 
 		return $this->calculateByUsages($usages);
 	}

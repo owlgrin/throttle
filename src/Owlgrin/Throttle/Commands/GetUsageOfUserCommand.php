@@ -4,26 +4,27 @@ use Illuminate\Console\Command;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputArgument;
 
+use Owlgrin\Throttle\Period\ActiveSubscriptionPeriod;
 use Throttle;
 
 /**
  * Command to generate the required migration
  */
-class UserUnsubscribeCommand extends Command {
+class GetUsageOfUserCommand extends Command {
 
 	/**
 	 * The console command name.
 	 *
 	 * @var string
 	 */
-	protected $name = 'throttle:unsubscribe';
+	protected $name = 'throttle:usage';
 
 	/**
 	 * The console command description.
 	 *
 	 * @var string
 	 */
-	protected $description = 'Unsubscribes the user';
+	protected $description = 'Find\'s usage of the user';
 
 	/**
 	 * Execute the console command.
@@ -40,15 +41,18 @@ class UserUnsubscribeCommand extends Command {
 	{
 		$userId = $this->option('user');
 
-		Throttle::unsubscribe($userId);
-		
-		$this->info('User With id '.$userId.' has been unsubscribed');
+		$period = new ActiveSubscriptionPeriod($userId);
+
+		$usages = Throttle::getUsage($userId, $period);
+
+		$this->info('User With id '.$userId.' has a usages of');
+		print_r($usages);
 	}
 
 	protected function getOptions()
 	{
 		return array(
-			array('user', null, InputOption::VALUE_OPTIONAL, 'The id of the user who wants to unsubscribe', null)
+			array('user', null, InputOption::VALUE_OPTIONAL, 'The id of the user whose usage to show', null)
 		);
 	}
 }

@@ -110,9 +110,6 @@ class DbSubscriberRepo implements SubscriberRepo {
 		}
 		catch(PDOException $e)
 		{
-			//rollback if failed
-			$this->db->rollback();
-
 			throw new Exceptions\InternalException("Something went wrong with database");	
 		}
 	}
@@ -165,13 +162,15 @@ class DbSubscriberRepo implements SubscriberRepo {
 	}
 
 	//manually increment limit of a subscription
-	public function incrementLimit($subscriptionId, $featureId, $value)
+	public function incrementLimit($userId, $featureIdentifier, $value)
 	{
 		try
 		{
-			$this->db->table(Config::get('throttle::tables.user_feature_limit'))
-				->where('subscription_id', $subscriptionId)
-				->where('feature_id', $featureId)
+			$this->db->table(Config::get('throttle::tables.user_feature_limit').' AS ufl')
+				->join(Config::get('throttle::tables.features').' AS f', 'f.id', '=', 'ufl.feature_id')
+				->join(Config::get('throttle::tables.subscriptions').' AS s', 's.id', '=', 'ufl.subscription_id')
+				->where('s.user_id', $userId)
+				->where('f.identifier', $featureIdentifier)
 				->increment('limit', $value);
 		}
 		catch(PDOException $e)

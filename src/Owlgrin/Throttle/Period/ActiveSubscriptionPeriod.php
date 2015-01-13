@@ -2,16 +2,18 @@
 
 use Carbon\Carbon;
 use Owlgrin\Throttle\Period\PeriodInterface;
-use Owlgrin\Throttle\Period\SetPeriodInterface;
-use Owlgrin\Throttle\Period\PeriodRepo;
+
+use Throttle;
 
 class ActiveSubscriptionPeriod implements PeriodInterface {
 
 	protected $period;
 
-	public function __construct(PeriodRepo $periodRepo)
+	public function __construct($userId = null)
 	{
-		$this->period = $periodRepo->getPeriodBySubscription($subscriptionId);
+		$userId = is_null($userId) ? Throttle::getUser() : $userId;
+
+		$this->period = Throttle::user($userId)->getPeriod();
 	}
 
 	public function start($formatted = false)
