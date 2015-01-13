@@ -4,9 +4,8 @@ use Illuminate\Console\Command;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputArgument;
 use Owlgrin\Throttle\Subscriber\SubscriberRepo;
-use Owlgrin\Throttle\Period\CurrentMonthPeriod;
 use Throttle;
-use Carbon\Carbon;
+use Carbon\Carbon, Config, App;
 
 /**
  * Command to generate the required migration
@@ -40,19 +39,12 @@ class UpdateSubscriptionPeriodForUserCommand extends Command {
 	 */
 	protected $subscriptionRepo;
 
-	/**
-	 * The current month period
-	 *
-	 * @var Owlgrin\Throttle\Period\CurrentMonthPeriod
-	 */
-	protected $currentMonthPeriod;
-
-	public function __construct(SubscriberRepo $subscriptionRepo, CurrentMonthPeriod $currentMonthPeriod)
+	public function __construct(SubscriberRepo $subscriptionRepo)
 	{
  		parent::__construct();
 
 		$this->subscriptionRepo = $subscriptionRepo;
-		$this->currentMonthPeriod = $currentMonthPeriod;
+		$this->currentMonthPeriod = App::make(Config::get('throttle::period_class'));
 	}
 
 	public function fire()
