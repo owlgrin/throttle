@@ -97,7 +97,6 @@ class DbSubscriberRepo implements SubscriberRepo {
 				$period = new CurrentMonthPeriod();
 				$this->periodRepo->store($subscriptionId, $period->start(), $period->end());
 			}
-
 					
 			//commition the work after processing
 			$this->db->commit();

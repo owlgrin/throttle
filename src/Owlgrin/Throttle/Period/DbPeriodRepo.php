@@ -22,7 +22,7 @@ class DbPeriodRepo implements PeriodRepo {
 
 			$this->unsetPeriod($subscriptionId);
 
-			return $this->db->table(Config::get('throttle::tables.subscription_period'))->insertGetId([
+			$periodId = $this->db->table(Config::get('throttle::tables.subscription_period'))->insertGetId([
 				'subscription_id' => $subscriptionId,
 				'starts_at' => $startDate,
 				'ends_at' => $endDate,
@@ -30,6 +30,8 @@ class DbPeriodRepo implements PeriodRepo {
 			]);
 
 			$this->db->commit();
+
+			return $periodId;
 		}
 		catch(PDOException $e)
 		{
