@@ -38,11 +38,9 @@ class GetUsageOfUserCommand extends Command {
 	 * @return void
 	 */
 
-	public function __construct(SubscriberRepo $subscriptionRepo)
+	public function __construct()
 	{
  		parent::__construct();
-
- 		$this->subscriptionRepo = $subscriptionRepo;
 	}
 
 	public function fire()

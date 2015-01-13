@@ -4,8 +4,6 @@ use Illuminate\Console\Command;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputArgument;
 
-use Owlgrin\Throttle\Period\CurrentSubscriptionPeriod;
-
 use Throttle;
 
 /**
@@ -33,17 +31,16 @@ class UserSubscribeCommand extends Command {
 	 * @return void
 	 */
 
-	public function __construct(CurrentSubscriptionPeriod $period)
+	public function __construct()
 	{
  		parent::__construct();
-		$this->period = $period;
 	}
 
 	public function fire()
 	{
 		$userId = $this->option('user');
 		$planIdentifier = $this->option('plan');
-
+	
 		Throttle::subscribe($userId, $planIdentifier);
 
 		$this->info('User With id '.$userId.' is subscribed to plan with identifier '.$planIdentifier);
