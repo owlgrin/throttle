@@ -44,9 +44,7 @@ class UserSubscribeCommand extends Command {
 		$userId = $this->option('user');
 		$planIdentifier = $this->option('plan');
 
-		$subscriptionId = Throttle::subscribe($planIdentifier, $userId);
-		
-		Throttle::addPeriod($this->period, $subscriptionId);
+		Throttle::subscribe($userId, $planIdentifier);
 
 		$this->info('User With id '.$userId.' is subscribed to plan with identifier '.$planIdentifier);
 	}

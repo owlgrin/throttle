@@ -79,9 +79,14 @@ class ThrottleServiceProvider extends ServiceProvider {
 			return $app->make('Owlgrin\Throttle\Commands\SeedDailyBaseUsageCommand');
 		});
 
-		$this->app->bindShared('command.add.user.period', function($app)
+		$this->app->bindShared('command.update.subscription.period', function($app)
 		{
-			return $app->make('Owlgrin\Throttle\Commands\AddPeriodForUserCommand');
+			return $app->make('Owlgrin\Throttle\Commands\UpdateSubscriptionPeriodForUserCommand');
+		});
+
+		$this->app->bindShared('command.update.subscription.period.by.user', function($app)
+		{
+			return $app->make('Owlgrin\Throttle\Commands\UpdateSubscriptionPeriodByUserCommand');
 		});
 
 		$this->app->bindShared('command.user.unsubscribe', function($app)
@@ -106,7 +111,8 @@ class ThrottleServiceProvider extends ServiceProvider {
 		$this->commands('command.plan.list');
 		$this->commands('command.feature.list');
 		$this->commands('command.seed.daily.usage');
-		$this->commands('command.add.user.period');
+		$this->commands('command.update.subscription.period');
+		$this->commands('command.update.subscription.period.by.user');
 		$this->commands('command.user.unsubscribe');
 		$this->commands('command.user.usage');
 		$this->commands('command.user.limit.increment');
@@ -119,6 +125,7 @@ class ThrottleServiceProvider extends ServiceProvider {
 		$this->app->bind('Owlgrin\Throttle\Plan\PlanRepo', 'Owlgrin\Throttle\Plan\DbPlanRepo');
 		$this->app->bind('Owlgrin\Throttle\Period\PeriodRepo', 'Owlgrin\Throttle\Period\DbPeriodRepo');
 		$this->app->bind('Owlgrin\Throttle\Feature\FeatureRepo', 'Owlgrin\Throttle\Feature\DbFeatureRepo');
+		$this->app->bind('Owlgrin\Throttle\Usage\UsageRepo', 'Owlgrin\Throttle\Usage\DbUsageRepo');
 		$this->app->bind('Owlgrin\Throttle\Limiter\LimiterInterface', 'Owlgrin\Throttle\Limiter\Limiter');
 
 		$this->app->singleton('throttle', 'Owlgrin\Throttle\Throttle');

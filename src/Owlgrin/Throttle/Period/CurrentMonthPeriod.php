@@ -3,9 +3,9 @@
 use Carbon\Carbon;
 use Owlgrin\Throttle\Period\PeriodInterface;
 
-class CurrentSubscriptionPeriod implements PeriodInterface {
-
-	protected $period;
+class CurrentMonthPeriod implements PeriodInterface {
+	
+	public function __construct(){}
 
 	public function start($formatted = false)
 	{
