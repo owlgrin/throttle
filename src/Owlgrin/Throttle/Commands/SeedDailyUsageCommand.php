@@ -43,9 +43,9 @@ class SeedDailyUsageCommand extends Command {
 
 		$subscription = $this->subscriber->subscription($userId);
 
-		$this->subscriber->addInitialUsageForFeatures($subscription['subscription_id'], $subscription['plan_id']);
+		$this->subscriber->addInitialUsageForFeatures($subscription['id'], $subscription['plan_id']);
 
-		$this->info('User with subscription id '. $subscription['subscription_id'] .' has been has been seed with planID '. $subscription['plan_id']);
+		$this->info('User with subscription id '. $subscription['id'] .' has been has been seed with planID '. $subscription['plan_id']);
 	}
 	
 	protected function getOptions()

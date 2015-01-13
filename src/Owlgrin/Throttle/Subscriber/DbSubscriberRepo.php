@@ -8,6 +8,9 @@ use Owlgrin\Throttle\Plan\PlanRepo;
 use Owlgrin\Throttle\Feature\FeatureRepo;
 use Owlgrin\Throttle\Period\PeriodInterface;
 use Owlgrin\Throttle\Usage\UsageRepo;
+use Owlgrin\Throttle\Period\PeriodRepo;
+use Owlgrin\Throttle\Period\CurrentMonthPeriod;
+
 use Owlgrin\Throttle\Exceptions;
 use PDOException, Config;
 
@@ -17,13 +20,15 @@ class DbSubscriberRepo implements SubscriberRepo {
 	protected $planRepo;
 	protected $featureRepo;
 	protected $usageRepo;
+	protected $periodRepo;
 
-	public function __construct(Database $db, PlanRepo $planRepo, FeatureRepo $featureRepo, UsageRepo $usageRepo)
+	public function __construct(Database $db, PlanRepo $planRepo, FeatureRepo $featureRepo, PeriodRepo $periodRepo, UsageRepo $usageRepo)
 	{
 		$this->db = $db;
 		$this->planRepo = $planRepo;
 		$this->featureRepo = $featureRepo;
 		$this->usageRepo = $usageRepo;
+		$this->periodRepo = $periodRepo;
 	}
 
 	public function all()
@@ -87,6 +92,10 @@ class DbSubscriberRepo implements SubscriberRepo {
 				//seeding base usages of features
 				$usages = $this->usageRepo->getBaseUsages($userId, [$this->subscription($userId)]);
 				$this->seedPreparedUsages($usages);
+
+				//adding subscription period
+				$period = new CurrentMonthPeriod();
+				$this->periodRepo->store($subscriptionId, $period->start(), $period->end());
 			}
 
 					
@@ -109,13 +118,24 @@ class DbSubscriberRepo implements SubscriberRepo {
 	{
 		try
 		{
+			//starting a transition
+			$this->db->beginTransaction();
+
 			$this->db->table(Config::get('throttle::tables.subscriptions'))
 				->where('user_id', $userId)
 				->where('is_active', '1')
 				->update(['is_active' => '0']);
+			
+			$this->periodRepo->unsetPeriodOfUser($userId);
+
+			//commition the work after processing
+			$this->db->commit();
 		}
 		catch(PDOException $e)
 		{
+			//rollback if failed
+			$this->db->rollback();
+
 			throw new Exceptions\InternalException("Something went wrong with database");	
 		}
 	}
@@ -168,14 +188,14 @@ class DbSubscriberRepo implements SubscriberRepo {
 	}
 
 	//manually increment limit of a subscription
-	public function incrementLimit($userId, $featureIdentifier, $value)
+	public function incrementLimit($subscriptionId, $featureIdentifier, $value)
 	{
 		try
 		{
 			$this->db->table(Config::get('throttle::tables.user_feature_limit').' AS ufl')
 				->join(Config::get('throttle::tables.features').' AS f', 'f.id', '=', 'ufl.feature_id')
 				->join(Config::get('throttle::tables.subscriptions').' AS s', 's.id', '=', 'ufl.subscription_id')
-				->where('s.user_id', $userId)
+				->where('s.id', $subscriptionId)
 				->where('f.identifier', $featureIdentifier)
 				->increment('limit', $value);
 		}
@@ -211,8 +231,8 @@ class DbSubscriberRepo implements SubscriberRepo {
 		}
 	}
 
-	//returns usage of the user
-	public function getUsage($userId, $startDate, $endDate)
+	//returns usage of the subscription
+	public function getUsage($subscriptionId, $startDate, $endDate)
 	{
 		try
 		{
@@ -236,12 +256,12 @@ class DbSubscriberRepo implements SubscriberRepo {
 					where
 						`ufu`.`date` >= :start_date
 						and `ufu`.`date` <= :end_date
-						and `s`.`user_id` = :user_id
+						and `s`.`id` = :subscription_id
 					group by `f`.`id`
 				', [
 					':start_date' => $startDate,
 					':end_date' => $endDate,
-					':user_id' => $userId
+					':subscription_id' => $subscriptionId
 				]);
 		}
 		catch(PDOException $e)

@@ -31,12 +31,13 @@ class IncrementLimitOfUserCommand extends Command {
 	 *
 	 * @return void
 	 */
-	protected $subscription;
+	protected $subscriptionRepo;
 
-	public function __construct(SubscriberRepo $subscription)
+	public function __construct(SubscriberRepo $subscriptionRepo)
 	{
  		parent::__construct();
- 		$this->subscription = $subscription;
+
+ 		$this->subscriptionRepo = $subscriptionRepo;
 	}
 
 	public function fire()
@@ -44,8 +45,10 @@ class IncrementLimitOfUserCommand extends Command {
 		$userId = $this->option('user');
 		$feature = $this->option('feature');
 		$value = $this->option('value');
-	
-		$this->subscription->incrementLimit($userId, $feature, $value);
+		
+		$subscription = $this->subscriptionRepo->subscription($userId);
+
+		$this->subscriptionRepo->incrementLimit($subscription['id'], $feature, $value);
 
 		$this->info('User With id '.$userId.' has incremented the usage with value:'. $value);
 	}

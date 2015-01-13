@@ -4,7 +4,6 @@ use Illuminate\Console\Command;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputArgument;
 
-use Owlgrin\Throttle\Period\ActiveSubscriptionPeriod;
 use Throttle;
 
 /**
@@ -27,23 +26,34 @@ class GetUsageOfUserCommand extends Command {
 	protected $description = 'Find\'s usage of the user';
 
 	/**
+	 * Subscriber Repo.
+	 *
+	 * @var object
+	 */
+	protected $subscriptionRepo;
+
+	/**
 	 * Execute the console command.
 	 *
 	 * @return void
 	 */
 
-	public function __construct()
+	public function __construct(SubscriberRepo $subscriptionRepo)
 	{
  		parent::__construct();
+
+ 		$this->subscriptionRepo = $subscriptionRepo;
 	}
 
 	public function fire()
 	{
 		$userId = $this->option('user');
 
-		$period = new ActiveSubscriptionPeriod($userId);
+		// $subscription = $this->subscriptionRepo->subscription($userId);
 
-		$usages = Throttle::getUsage($userId, $period);
+		// $period = new ActiveSubscriptionPeriod($userId);
+
+		$usages = Throttle::user($userId)->getUsage();
 
 		$this->info('User With id '.$userId.' has a usages of');
 		print_r($usages);
