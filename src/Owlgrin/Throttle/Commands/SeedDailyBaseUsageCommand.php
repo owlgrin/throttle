@@ -64,9 +64,7 @@ class SeedDailyBaseUsageCommand extends Command {
 
 		$subscriptions = $this->getSubscriptions($userId);
 
-		$usages = $this->usageRepo->getBaseUsages($userId, $subscriptions, $date);
-
-		$this->subscriptionRepo->seedPreparedUsages($usages);
+		$this->usageRepo->seedBase($userId, $subscriptions, $date);
 		
 		$this->info('Starting at.. ' . date('Y-m-d H:i:s'));
 	}

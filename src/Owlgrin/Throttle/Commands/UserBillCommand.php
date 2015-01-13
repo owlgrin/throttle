@@ -3,8 +3,9 @@
 use Illuminate\Console\Command;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputArgument;
-use Owlgrin\Throttle\Biller\Biller;
-use Owlgrin\Throttle\Subscriber\SubscriberRepo;
+use Owlgrin\Throttle\Period\ManualSubscriptionPeriod;
+
+use Throttle;
 
 /**
  * Command to generate the required migration
@@ -30,41 +31,46 @@ class UserBillCommand extends Command {
 	 *
 	 * @return void
 	 */
-	protected $biller;
-
-	/**
-	 * Subscriber Repo.
-	 *
-	 * @var object
-	 */
-	protected $subscriptionRepo;
-
-	public function __construct(Biller $biller, SubscriberRepo $subscriptionRepo)
+	
+	public function __construct()
 	{
  		parent::__construct();
-
-		$this->biller  = $biller;
-		$this->subscriptionRepo  = $subscriptionRepo;
 	}
 
 	public function fire()
 	{
-		$userId = $this->option('user');
+		$userId = $this->argument('user');
+
 		$startDate = $this->option('start_date');
 		$endDate = $this->option('end_date');
 
-		$subscription = $this->subscriptionRepo->subscription($userId);
-
-		$bill = $this->biller->bill($subscription['id'], $startDate, $endDate);
+		$bill = $this->getBill($userId, $startDate, $endDate);
 
 		$this->info('User With id '.$userId.' has a bill of');
+
 		print_r($bill);
+	}
+
+	protected function getBill($userId, $startDate, $endDate)
+	{
+		if($startDate == null and $endDate == null)
+		{
+			return Throttle::user($userId)->bill();
+		}
+
+		return Throttle::user($userId)->bill(new ManualSubscriptionPeriod($startDate, $endDate));
+	}
+
+	protected function getArguments()
+	{
+		return array(
+			array('user', InputArgument::REQUIRED, 'The id of the user who wants to subscribe')
+		);	
 	}
 
 	protected function getOptions()
 	{
 		return array(
-			array('user', null, InputOption::VALUE_OPTIONAL, 'The id of the user who wants to subscribe', null),
 			array('start_date', null, InputOption::VALUE_OPTIONAL, 'The start date of the bill.', null),
 			array('end_date', null, InputOption::VALUE_OPTIONAL, 'The end date of the bill.', null)
 		);

@@ -134,12 +134,15 @@ class Throttle {
 		$this->attempts[$identifier] = $this->limiter->softAttempt($this->subscription['id'], $identifier, $count, $this->period->start(), $this->period->end());
 	}
 
-	public function bill()
+	public function bill($period = null)
 	{
+		// if passed period is either null or not an instance of PeriodInterface
+		if(is_null($period) or ! ($period instanceof PeriodInterface)) $period = $this->period;
+
 		if(is_null($this->subscription))
 			throw new Exceptions\SubscriptionException('No Subscription exists');
 
-		return $this->biller->bill($this->subscription['id'], $this->period->start(), $this->period->end());
+		return $this->biller->bill($this->subscription['id'], $period->start(), $period->end());
 	}
 
 	public function estimate($usages)
@@ -173,11 +176,14 @@ class Throttle {
 		return $this->plan->add($plan);
 	}
 
-	public function getUsage()
+	public function getUsage($period = null)
 	{
+		// if passed period is either null or not an instance of PeriodInterface
+		if(is_null($period) or ! ($period instanceof PeriodInterface)) $period = $this->period;
+
 		if(! $this->subscription)
 			throw new Exceptions\SubscriptionException('No Subscription exists');
 
-		return $this->subscriber->getUsage($this->subscription['id'], $this->period->start(), $this->period->end());
+		return $this->subscriber->getUsage($this->subscription['id'], $period->start(), $period->end());
 	}
 }
