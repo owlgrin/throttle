@@ -13,6 +13,7 @@ use Owlgrin\Throttle\Period\CurrentMonthPeriod;
 
 use Owlgrin\Throttle\Exceptions;
 use PDOException, Config;
+use App;
 
 class DbSubscriberRepo implements SubscriberRepo {
 
@@ -93,7 +94,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 				$this->usageRepo->seedBase($userId, [$this->subscription($userId)]);
 				
 				//adding subscription period
-				$period = new CurrentMonthPeriod();
+				$period = App::make(Config::get('throttle::period_class'));
 				$this->periodRepo->store($subscriptionId, $period->start(), $period->end());
 			}
 					

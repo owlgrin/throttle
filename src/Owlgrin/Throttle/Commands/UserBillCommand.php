@@ -3,7 +3,11 @@
 use Illuminate\Console\Command;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputArgument;
-use Owlgrin\Throttle\Period\ManualSubscriptionPeriod;
+
+use Owlgrin\Throttle\Biller\Biller;
+use Owlgrin\Throttle\Subscriber\SubscriberRepo;
+use Owlgrin\Throttle\Period\ActiveSubscriptionPeriod;
+use Owlgrin\Throttle\Period\ManualPeriod;
 
 use Throttle;
 
@@ -48,7 +52,7 @@ class UserBillCommand extends Command {
 
 		$this->info('User With id '.$userId.' has a bill of');
 
-		print_r($bill);
+		$this->displayTables($bill);
 	}
 
 	protected function getBill($userId, $startDate, $endDate)
@@ -58,7 +62,7 @@ class UserBillCommand extends Command {
 			return Throttle::user($userId)->bill();
 		}
 
-		return Throttle::user($userId)->bill(new ManualSubscriptionPeriod($startDate, $endDate));
+		return Throttle::user($userId)->bill(new ManualPeriod($startDate, $endDate));
 	}
 
 	protected function getArguments()
@@ -74,5 +78,26 @@ class UserBillCommand extends Command {
 			array('start_date', null, InputOption::VALUE_OPTIONAL, 'The start date of the bill.', null),
 			array('end_date', null, InputOption::VALUE_OPTIONAL, 'The end date of the bill.', null)
 		);
+	}
+
+	protected function displayTables($bill)
+	{
+		$lines = [];
+
+		foreach ($bill['lines'] as $line) 
+		{
+			unset($line['tiers']);
+			$lines[] = $line;
+		}
+
+		$this->table(['feature_name', 'amount', 'usage'], $lines);
+
+		$total = array(
+			array(
+				'amount' => $bill['amount']
+			)
+		);
+
+		$this->table(['total'], $total);
 	}
 }

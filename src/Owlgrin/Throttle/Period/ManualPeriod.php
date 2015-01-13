@@ -3,7 +3,7 @@
 use Carbon\Carbon;
 use Owlgrin\Throttle\Period\PeriodInterface;
 
-class ManualSubscriptionPeriod implements PeriodInterface {
+class ManualPeriod implements PeriodInterface {
 
 	protected $start;
 	protected $end;

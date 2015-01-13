@@ -3,7 +3,7 @@
 use Illuminate\Console\Command;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputArgument;
-use Owlgrin\Throttle\Period\ManualSubscriptionPeriod;
+use Owlgrin\Throttle\Period\ManualPeriod;
 
 use Throttle;
 
@@ -48,7 +48,7 @@ class GetUsageOfUserCommand extends Command {
 
 		$this->info('User With id '.$userId.' has a usages of');
 
-		print_r($usages);
+		$this->table(['plan_id', 'feature_id', 'used_quantity'], $usages);
 	}
 
 	protected function getUsage($userId, $startDate, $endDate)
@@ -58,7 +58,7 @@ class GetUsageOfUserCommand extends Command {
 			return Throttle::user($userId)->getUsage();			
 		}
 		
-		return Throttle::user($userId)->getUsage(new ManualSubscriptionPeriod($startDate, $endDate));			
+		return Throttle::user($userId)->getUsage(new ManualPeriod($startDate, $endDate));			
 	}
 
 	protected function getArguments()
