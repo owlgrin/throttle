@@ -26,32 +26,19 @@ class GetUsageOfUserCommand extends Command {
 	protected $description = 'Find\'s usage of the user';
 
 	/**
-	 * Subscriber Repo.
-	 *
-	 * @var object
-	 */
-	protected $subscriptionRepo;
-
-	/**
 	 * Execute the console command.
 	 *
 	 * @return void
 	 */
 
-	public function __construct(SubscriberRepo $subscriptionRepo)
+	public function __construct()
 	{
  		parent::__construct();
-
- 		$this->subscriptionRepo = $subscriptionRepo;
 	}
 
 	public function fire()
 	{
 		$userId = $this->option('user');
-
-		// $subscription = $this->subscriptionRepo->subscription($userId);
-
-		// $period = new ActiveSubscriptionPeriod($userId);
 
 		$usages = Throttle::user($userId)->getUsage();
 

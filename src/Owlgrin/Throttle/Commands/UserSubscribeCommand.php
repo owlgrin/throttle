@@ -4,7 +4,7 @@ use Illuminate\Console\Command;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputArgument;
 
-use Owlgrin\Throttle\Period\CurrentSubscriptionPeriod;
+use Owlgrin\Throttle\Period\CurrentMonthPeriod;
 
 use Throttle;
 
@@ -33,7 +33,7 @@ class UserSubscribeCommand extends Command {
 	 * @return void
 	 */
 
-	public function __construct(CurrentSubscriptionPeriod $period)
+	public function __construct(CurrentMonthPeriod $period)
 	{
  		parent::__construct();
 		$this->period = $period;
