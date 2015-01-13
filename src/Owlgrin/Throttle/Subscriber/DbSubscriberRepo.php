@@ -205,8 +205,8 @@ class DbSubscriberRepo implements SubscriberRepo {
 		}
 	}
 
-	//returns usage of the user
-	public function getUsage($userId, $startDate, $endDate)
+	//returns usage of the subscription
+	public function getUsage($subscriptionId, $startDate, $endDate)
 	{
 		try
 		{
@@ -230,12 +230,12 @@ class DbSubscriberRepo implements SubscriberRepo {
 					where
 						`ufu`.`date` >= :start_date
 						and `ufu`.`date` <= :end_date
-						and `s`.`user_id` = :user_id
+						and `s`.`id` = :subscription_id
 					group by `f`.`id`
 				', [
 					':start_date' => $startDate,
 					':end_date' => $endDate,
-					':user_id' => $userId
+					':subscription_id' => $subscriptionId
 				]);
 		}
 		catch(PDOException $e)

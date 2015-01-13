@@ -146,7 +146,7 @@ class Throttle {
 		if(is_null($this->subscription))
 			throw new Exceptions\SubscriptionException('No Subscription exists');
 
-		return $this->biller->bill($this->user, $this->period['starts_at'], $this->period['ends_at']);
+		return $this->biller->bill($this->subscription['id'], $this->period['starts_at'], $this->period['ends_at']);
 	}
 
 	public function estimate($usages)
@@ -187,6 +187,6 @@ class Throttle {
 		if(! $this->subscriber->subscription($user))
 			throw new Exceptions\SubscriptionException('No Subscription exists');
 
-		return $this->subscriber->getUsage($user, $period->start(), $period->end());
+		return $this->subscriber->getUsage("3", $period->start(), $period->end());
 	}
 }
