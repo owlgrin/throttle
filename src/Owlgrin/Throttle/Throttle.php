@@ -6,6 +6,7 @@ use Owlgrin\Throttle\Plan\PlanRepo as Plan;
 use Owlgrin\Throttle\Exceptions;
 use Owlgrin\Throttle\Period\PeriodRepo;
 use Owlgrin\Throttle\Limiter\LimiterInterface;
+use Owlgrin\Throttle\Period\PeriodInterface;
 /**
  * The Throttle core
  */
@@ -14,20 +15,22 @@ class Throttle {
 	protected $biller; 
 	protected $subscriber;
 	protected $plan;
-	protected $periodRepo;	
+	protected $periodRepo;
 	protected $limiter;
+	protected $usageRepo;
 
 	protected $attempts = [];
 	protected $user = null;
 	protected $subscription = null;
 
-	public function __construct(Biller $biller, Subscriber $subscriber, Plan $plan, PeriodRepo $periodRepo, LimiterInterface $limiter)
+	public function __construct(Biller $biller, Subscriber $subscriber, Plan $plan, PeriodRepo $periodRepo, LimiterInterface $limiter, UsageRepo $usageRepo)
 	{
 		$this->biller = $biller;
 		$this->subscriber = $subscriber;
 		$this->plan = $plan;
 		$this->periodRepo = $periodRepo;
 		$this->limiter = $limiter;
+		$this->usageRepo = $usageRepo;
 	}
 
 	//sets users details at the time of initialisation
@@ -67,12 +70,14 @@ class Throttle {
 	public function subscribe($planIdentifier, $user = null)
 	{
 		$user = is_null($user) ? $this->user : $user;
-
+		
 		 if($this->subscriber->subscription($user))
 			throw new Exceptions\InternalException('Subscription already exists');
 
 		$this->subscriber->subscribe($user, $planIdentifier);
-		 
+		
+		$this->seedBaseUsage($user);
+		
 		$this->user($user);
 	}
 

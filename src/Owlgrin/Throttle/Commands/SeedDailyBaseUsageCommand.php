@@ -3,10 +3,9 @@
 use Illuminate\Console\Command;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputArgument;
-use Owlgrin\Throttle\Subscriber\SubscriberRepo;
-use Owlgrin\Throttle\Feature\FeatureRepo;
+use Owlgrin\Throttle\Usage\UsageRepo;
 use Carbon\Carbon;
-use App, Config;
+use Throttle;
 
 /**
  * Command to generate the required migration
@@ -28,87 +27,34 @@ class SeedDailyBaseUsageCommand extends Command {
 	protected $description = 'Seed Daily Base Usage';
 
 	/**
-	 * The subscription repo
+	 * Usage Repo.
 	 *
-	 * @var Owlgrin\Throttle\Subscriber\SubscriberRepo
+	 * Owlgrin\Throttle\Usage\UsageRepo;
+	 * 
+	 * @var object
+	 * 
 	 */
-	protected $subscriptionRepo;
+	protected $usageRepo;
 
-	/**
-	 * The feature repo
-	 *
-	 * @var Owlgrin\Throttle\Feature\FeatureRepo
-	 */
-	protected $featureRepo;
-
-	public function __construct(SubscriberRepo $subscriptionRepo, FeatureRepo $featureRepo)
+	public function __construct(UsageRepo $usageRepo)
 	{
  		parent::__construct();
- 		$this->subscriptionRepo = $subscriptionRepo;
- 		$this->featureRepo = $featureRepo;
+
+ 		$this->usageRepo = $usageRepo;
 	}
 
 	public function fire()
 	{
-		$date = $this->option('date');
-
-		$subscriptions = $this->getSubscriptions();
-
-		foreach($subscriptions as $subscription)
-		{
-			if( ! $subscription) continue;
-
-			$features = $this->getFeaturesForUser($subscription['user_id']);
-
-			$usages = $this->prepareUsages($subscription, $features, $date);
-
-			$this->subscriptionRepo->seedPreparedUsages($usages);
-		}
-	}
-
-	protected function getSubscriptions()
-	{
-		// if user explicitly passed, we will return that only
-		if( ! is_null($userId = $this->option('user')))
-		{
-			return [$this->subscriptionRepo->subscription($userId)];
-		}
-
-		return $this->subscriptionRepo->all();
-	}
-
-	protected function getFeaturesForUser($userId)
-	{
-		return $this->featureRepo->allForUser($userId);
-	}
-
-	protected function prepareUsages($subscription, $features, $date)
-	{
-		$usages = [];
-
-		foreach($features as $feature)
-		{
-			$usages[] = [
-				'subscription_id' => $subscription['id'],
-				'feature_id' => $feature['id'],
-				'date' => $date,
-				'used_quantity' => $this->getUsageForFeature($subscription['user_id'], $feature['identifier'], $date)
-			];
-		}
-
-		return $usages;
-	}
-
-	protected function getUsageForFeature($userId, $featureIdentifier, $date)
-	{
-		if($seeder = Config::get("throttle::seeders.{$featureIdentifier}"))
-		{
-			return app($seeder)->getUsageForDate($userId, $date);
-		}
+		$this->info('Starting at.. ' . date('Y-m-d H:i:s'));
 		
-		return 0;
+		$date = $this->option('date');
+		$userId = $this->option('user');
+
+		$this->usageRepo->seedBase($userId, $date);
+		
+		$this->info('Starting at.. ' . date('Y-m-d H:i:s'));
 	}
-	
+
 	protected function getOptions()
 	{
 		return array(

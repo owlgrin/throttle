@@ -75,12 +75,13 @@ class DbSubscriberRepo implements SubscriberRepo {
 					'is_active'		=> '1',
 					'subscribed_at' => $this->db->raw('now()'),
 			]);
-
+			
 			if($subscriptionId)
 			{
 				//find limit of the features
-				$this->addInitialUsageForFeatures($subscriptionId, $plan['id']);
+				// $this->addInitialUsageForFeatures($subscriptionId, $plan['id']);
 				$this->addInitialLimitForFeatures($subscriptionId, $plan['id']);
+				// $this->usageRepo->seedBase($userId);
 			}
 
 			//commition the work after processing

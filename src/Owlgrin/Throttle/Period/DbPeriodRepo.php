@@ -21,7 +21,7 @@ class DbPeriodRepo implements PeriodRepo {
 				'subscription_id' => $subscriptionId,
 				'starts_at' => $startDate,
 				'ends_at' => $endDate,
-				'status' => 1
+				'is_active' => 1
 			]);
 		}
 		catch(PDOException $e)
@@ -36,7 +36,7 @@ class DbPeriodRepo implements PeriodRepo {
 		{
 			return $this->db->table(Config::get('throttle::tables.subscription_period'))
 				->where('subscription_id', $subscriptionId)
-				->where('status', 1)
+				->where('is_active', 1)
 				->first();
 		}
 		catch(PDOException $e)
@@ -51,8 +51,8 @@ class DbPeriodRepo implements PeriodRepo {
 		{
 			$this->db->table(Config::get('throttle::tables.subscription_period'))
 				->where('subscription_id', $subscriptionId)
-				->where('status', 1)
-				->update('status', 0);
+				->where('is_active', 1)
+				->update(array('is_active' => 0));
 		}
 		catch(PDOException $e)
 		{
