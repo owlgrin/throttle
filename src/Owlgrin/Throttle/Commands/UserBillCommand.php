@@ -5,6 +5,7 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputArgument;
 use Owlgrin\Throttle\Biller\Biller;
 use Owlgrin\Throttle\Subscriber\SubscriberRepo;
+use Owlgrin\Throttle\Period\ActiveSubscriptionPeriod;
 
 /**
  * Command to generate the required migration
@@ -50,15 +51,19 @@ class UserBillCommand extends Command {
 	public function fire()
 	{
 		$userId = $this->option('user');
-		$startDate = $this->option('start_date');
-		$endDate = $this->option('end_date');
+		// $startDate = $this->option('start_date');
+		// $endDate = $this->option('end_date');
 
 		$subscription = $this->subscriptionRepo->subscription($userId);
 
-		$bill = $this->biller->bill($subscription['id'], $startDate, $endDate);
+		$period = new ActiveSubscriptionPeriod($subscription['id'], true);
+
+		$bill = $this->biller->bill($subscription['id'], $period->start(), $period->end());
 
 		$this->info('User With id '.$userId.' has a bill of');
-		print_r($bill);
+
+		$this->displayTables($bill);
+		// $this->table([$this->table(['limit', 'rate', 'rate_per_quantity', 'usage', 'amount']), 'feature_name', 'amount', 'usage'], $bill);
 	}
 
 	protected function getOptions()
@@ -68,5 +73,28 @@ class UserBillCommand extends Command {
 			array('start_date', null, InputOption::VALUE_OPTIONAL, 'The start date of the bill.', null),
 			array('end_date', null, InputOption::VALUE_OPTIONAL, 'The end date of the bill.', null)
 		);
+	}
+
+	protected function displayTables($bill)
+	{
+		$lines = [];
+
+		print_r($bill);
+
+		foreach ($bill['lines'] as $line) 
+		{
+			unset($line['tiers']);
+			$lines[] = $line;
+		}
+
+		$this->table(['feature_name', 'amount', 'usage'], $lines);
+
+		$total = array(
+			array(
+				'amount' => $bill['amount']
+			)
+		);
+
+		$this->table(['total'], $total);
 	}
 }

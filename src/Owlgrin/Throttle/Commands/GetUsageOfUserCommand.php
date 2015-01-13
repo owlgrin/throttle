@@ -54,7 +54,7 @@ class GetUsageOfUserCommand extends Command {
 		$usages = Throttle::user($userId)->getUsage();
 
 		$this->info('User With id '.$userId.' has a usages of');
-		print_r($usages);
+		$this->table(['plan_id', 'feature_id', 'used_quantity'], $usages);
 	}
 
 	protected function getOptions()
