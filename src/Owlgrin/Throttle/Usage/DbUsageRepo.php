@@ -4,47 +4,29 @@ use Owlgrin\Throttle\Usage\UsageRepo;
 use Owlgrin\Throttle\Exceptions;
 use Config, Carbon\Carbon;
 
-use Owlgrin\Throttle\Subscriber\SubscriberRepo;
 use Owlgrin\Throttle\Feature\FeatureRepo;
 
 class DbUsageRepo implements UsageRepo {
 
-	protected $subscriberRepo;
 	protected $featureRepo;
 
-	public function __construct(SubscriberRepo $subscriberRepo, FeatureRepo $featureRepo)
+	public function __construct(FeatureRepo $featureRepo)
 	{
-		$this->subscriberRepo = $subscriberRepo;
 		$this->featureRepo = $featureRepo;
 	}
 
-	public function seedBase($userId, $date = null)
+	public function getBaseUsages($userId, $subscriptions, $date = null)
 	{	
 		$date =  is_null($date) ? Carbon::today()->toDateString() : $date;
 		
-		$subscriptions = $this->getSubscriptions($userId);
-
 		foreach($subscriptions as $subscription)
 		{
 			if( ! $subscription) continue;
 
 			$features = $this->getFeaturesForUser($subscription['user_id']);
 
-			$usages = $this->prepareUsages($subscription, $features, $date);
-
-			$this->subscriberRepo->seedPreparedUsages($usages);
+			return $this->prepareUsages($subscription, $features, $date);
 		}
-	}
-
-	private function getSubscriptions($userId)
-	{
-		// if user explicitly passed, we will return that only
-		if( ! is_null($userId))
-		{
-			return [$this->subscriberRepo->subscription($userId)];
-		}
-
-		return $this->subscriberRepo->all();
 	}
 
 	private function getFeaturesForUser($userId)

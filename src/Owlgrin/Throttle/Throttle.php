@@ -17,20 +17,18 @@ class Throttle {
 	protected $plan;
 	protected $periodRepo;
 	protected $limiter;
-	protected $usageRepo;
 
 	protected $attempts = [];
 	protected $user = null;
 	protected $subscription = null;
 
-	public function __construct(Biller $biller, Subscriber $subscriber, Plan $plan, PeriodRepo $periodRepo, LimiterInterface $limiter, UsageRepo $usageRepo)
+	public function __construct(Biller $biller, Subscriber $subscriber, Plan $plan, PeriodRepo $periodRepo, LimiterInterface $limiter)
 	{
 		$this->biller = $biller;
 		$this->subscriber = $subscriber;
 		$this->plan = $plan;
 		$this->periodRepo = $periodRepo;
 		$this->limiter = $limiter;
-		$this->usageRepo = $usageRepo;
 	}
 
 	//sets users details at the time of initialisation
@@ -75,8 +73,6 @@ class Throttle {
 			throw new Exceptions\InternalException('Subscription already exists');
 
 		$this->subscriber->subscribe($user, $planIdentifier);
-		
-		$this->seedBaseUsage($user);
 		
 		$this->user($user);
 	}

@@ -3,6 +3,7 @@
 use Illuminate\Console\Command;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputArgument;
+use Owlgrin\Throttle\Subscriber\SubscriberRepo;
 use Owlgrin\Throttle\Usage\UsageRepo;
 use Carbon\Carbon;
 use Throttle;
@@ -29,6 +30,16 @@ class SeedDailyBaseUsageCommand extends Command {
 	/**
 	 * Usage Repo.
 	 *
+	 * Owlgrin\Throttle\Subscriber\SubscriberRepo;
+	 * 
+	 * @var object
+	 * 
+	 */
+	protected $subscriptionRepo;
+
+	/**
+	 * Usage Repo.
+	 *
 	 * Owlgrin\Throttle\Usage\UsageRepo;
 	 * 
 	 * @var object
@@ -36,11 +47,12 @@ class SeedDailyBaseUsageCommand extends Command {
 	 */
 	protected $usageRepo;
 
-	public function __construct(UsageRepo $usageRepo)
+	public function __construct(UsageRepo $usageRepo, SubscriberRepo $subscriptionRepo)
 	{
  		parent::__construct();
 
  		$this->usageRepo = $usageRepo;
+ 		$this->subscriptionRepo = $subscriptionRepo;
 	}
 
 	public function fire()
@@ -50,9 +62,24 @@ class SeedDailyBaseUsageCommand extends Command {
 		$date = $this->option('date');
 		$userId = $this->option('user');
 
-		$this->usageRepo->seedBase($userId, $date);
+		$subscriptions = $this->getSubscriptions($userId);
+
+		$usages = $this->usageRepo->getBaseUsages($userId, $subscriptions, $date);
+
+		$this->subscriptionRepo->seedPreparedUsages($usages);
 		
 		$this->info('Starting at.. ' . date('Y-m-d H:i:s'));
+	}
+
+	protected function getSubscriptions($userId)
+	{
+		// if user explicitly passed, we will return that only
+		if( ! is_null($userId))
+		{
+			return [$this->subscriptionRepo->subscription($userId)];
+		}
+
+		return $this->subscriptionRepo->all();
 	}
 
 	protected function getOptions()

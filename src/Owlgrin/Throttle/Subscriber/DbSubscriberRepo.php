@@ -7,6 +7,7 @@ use Owlgrin\Throttle\Subscriber\SubscriberRepo;
 use Owlgrin\Throttle\Plan\PlanRepo;
 use Owlgrin\Throttle\Feature\FeatureRepo;
 use Owlgrin\Throttle\Period\PeriodInterface;
+use Owlgrin\Throttle\Usage\UsageRepo;
 use Owlgrin\Throttle\Exceptions;
 use PDOException, Config;
 
@@ -15,12 +16,14 @@ class DbSubscriberRepo implements SubscriberRepo {
 	protected $db;
 	protected $planRepo;
 	protected $featureRepo;
+	protected $usageRepo;
 
-	public function __construct(Database $db, PlanRepo $planRepo, FeatureRepo $featureRepo)
+	public function __construct(Database $db, PlanRepo $planRepo, FeatureRepo $featureRepo, UsageRepo $usageRepo)
 	{
 		$this->db = $db;
 		$this->planRepo = $planRepo;
 		$this->featureRepo = $featureRepo;
+		$this->usageRepo = $usageRepo;
 	}
 
 	public function all()
@@ -78,10 +81,12 @@ class DbSubscriberRepo implements SubscriberRepo {
 			
 			if($subscriptionId)
 			{
-				//find limit of the features
-				// $this->addInitialUsageForFeatures($subscriptionId, $plan['id']);
+				//seeding limit of of features
 				$this->addInitialLimitForFeatures($subscriptionId, $plan['id']);
-				// $this->usageRepo->seedBase($userId);
+				
+				//seeding base usages of features
+				$usages = $this->usageRepo->getBaseUsages($userId, [$this->subscription($userId)]);
+				$this->seedPreparedUsages($usages);
 			}
 
 			//commition the work after processing
