@@ -38,4 +38,17 @@ return array(
 		 */
 		'subscription_period' => 'subscription_period'
 	),
+
+	/**
+	 * Set the default throttle plan.
+	 */
+	
+	'plan' => 'your-plan-identifier',
+	
+	/**
+	 * The default period class path to be used in throttle.
+	 */
+	
+	'period-class' => 'Owlgrin\Throttle\Period\CurrentMonthPeriod'
+
 );

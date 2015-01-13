@@ -3,7 +3,7 @@
 use Illuminate\Console\Command;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputArgument;
-use Owlgrin\Throttle\Period\ManualSubscriptionPeriod;
+use Owlgrin\Throttle\Period\ManualPeriod;
 
 use Throttle;
 
@@ -58,7 +58,7 @@ class UserBillCommand extends Command {
 			return Throttle::user($userId)->bill();
 		}
 
-		return Throttle::user($userId)->bill(new ManualSubscriptionPeriod($startDate, $endDate));
+		return Throttle::user($userId)->bill(new ManualPeriod($startDate, $endDate));
 	}
 
 	protected function getArguments()
