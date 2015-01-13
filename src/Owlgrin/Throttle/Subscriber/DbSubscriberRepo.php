@@ -7,6 +7,8 @@ use Owlgrin\Throttle\Subscriber\SubscriberRepo;
 use Owlgrin\Throttle\Plan\PlanRepo;
 use Owlgrin\Throttle\Feature\FeatureRepo;
 use Owlgrin\Throttle\Period\PeriodInterface;
+use Owlgrin\Throttle\Period\PeriodRepo;
+
 use Owlgrin\Throttle\Exceptions;
 use PDOException, Config;
 
@@ -15,12 +17,14 @@ class DbSubscriberRepo implements SubscriberRepo {
 	protected $db;
 	protected $planRepo;
 	protected $featureRepo;
+	protected $periodRepo;
 
-	public function __construct(Database $db, PlanRepo $planRepo, FeatureRepo $featureRepo)
+	public function __construct(Database $db, PlanRepo $planRepo, FeatureRepo $featureRepo, PeriodRepo $periodRepo)
 	{
 		$this->db = $db;
 		$this->planRepo = $planRepo;
 		$this->featureRepo = $featureRepo;
+		$this->periodRepo = $periodRepo;
 	}
 
 	public function all()
@@ -103,13 +107,24 @@ class DbSubscriberRepo implements SubscriberRepo {
 	{
 		try
 		{
+			//starting a transition
+			$this->db->beginTransaction();
+
 			$this->db->table(Config::get('throttle::tables.subscriptions'))
 				->where('user_id', $userId)
 				->where('is_active', '1')
 				->update(['is_active' => '0']);
+			
+			$this->periodRepo->unsetPeriodOfUser($userId);
+
+			//commition the work after processing
+			$this->db->commit();
 		}
 		catch(PDOException $e)
 		{
+			//rollback if failed
+			$this->db->rollback();
+
 			throw new Exceptions\InternalException("Something went wrong with database");	
 		}
 	}

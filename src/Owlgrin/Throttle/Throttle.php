@@ -88,8 +88,6 @@ class Throttle {
 			throw new Exceptions\SubscriptionException('No Subscription exists');
 
 		$this->subscriber->unsubscribe($user);
-
-		$this->periodRepo->unsetPeriodOfUser($user);
 	}
 	
 	public function setPeriod(PeriodInterface $period)
