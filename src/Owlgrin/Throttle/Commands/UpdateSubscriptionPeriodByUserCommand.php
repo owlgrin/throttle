@@ -3,7 +3,7 @@
 use Illuminate\Console\Command;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputArgument;
-use Owlgrin\Throttle\Period\ManualSubscriptionPeriod;
+use Owlgrin\Throttle\Period\ManualPeriod;
 use Throttle;
 
 /**
@@ -46,7 +46,7 @@ class UpdateSubscriptionPeriodByUserCommand extends Command {
 
 		$this->info('Updating user with ID ' . $user . ' subscription period to ' . $start . ' - ' . $end);
 		
-		Throttle::user($user)->addPeriod(new ManualSubscriptionPeriod($start, $end));
+		Throttle::user($user)->addPeriod(new ManualPeriod($start, $end));
 
 		$this->info('Ending at.. ' . date('Y-m-d H:i:s'));
 	}

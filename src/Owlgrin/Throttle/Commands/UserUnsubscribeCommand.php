@@ -48,7 +48,7 @@ class UserUnsubscribeCommand extends Command {
 	protected function getOptions()
 	{
 		return array(
-			array('user', null, InputOption::VALUE_OPTIONAL, 'The id of the user who wants to unsubscribe', null)
+			array('user', null, InputOption::VALUE_REQUIRED, 'The id of the user who wants to unsubscribe', null)
 		);
 	}
 }

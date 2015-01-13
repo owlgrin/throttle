@@ -2,5 +2,5 @@
 
 interface UsageRepo {
 
-	public function getBaseUsages($userId, $subscriptions, $date);
+	public function seedBase($userId, $subscriptions, $date);
 }

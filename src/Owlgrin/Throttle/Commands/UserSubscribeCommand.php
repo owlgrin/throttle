@@ -49,8 +49,8 @@ class UserSubscribeCommand extends Command {
 	protected function getOptions()
 	{
 		return array(
-			array('user', null, InputOption::VALUE_OPTIONAL, 'The id of the user who wants to subscribe', null),
-			array('plan', null, InputOption::VALUE_OPTIONAL, 'The plan identifier for which user wants to subscribe.', null),
+			array('user', null, InputOption::VALUE_REQUIRED, 'The id of the user who wants to subscribe', null),
+			array('plan', null, InputOption::VALUE_REQUIRED, 'The plan identifier for which user wants to subscribe.', null),
 		);
 	}
 }

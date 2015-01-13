@@ -1,21 +1,26 @@
 <?php namespace Owlgrin\Throttle\Usage;
 
+use Illuminate\Database\DatabaseManager as Database;
+
 use Owlgrin\Throttle\Usage\UsageRepo;
 use Owlgrin\Throttle\Exceptions;
-use Config, Carbon\Carbon;
+
+use Config, Carbon\Carbon, PDOException;
 
 use Owlgrin\Throttle\Feature\FeatureRepo;
 
 class DbUsageRepo implements UsageRepo {
 
+	protected $db;
 	protected $featureRepo;
 
-	public function __construct(FeatureRepo $featureRepo)
+	public function __construct(Database $db, FeatureRepo $featureRepo)
 	{
+		$this->db = $db;
 		$this->featureRepo = $featureRepo;
 	}
 
-	public function getBaseUsages($userId, $subscriptions, $date = null)
+	public function seedBase($userId, $subscriptions, $date = null)
 	{	
 		$date =  is_null($date) ? Carbon::today()->toDateString() : $date;
 		
@@ -25,7 +30,9 @@ class DbUsageRepo implements UsageRepo {
 
 			$features = $this->getFeaturesForUser($subscription['user_id']);
 
-			return $this->prepareUsages($subscription, $features, $date);
+			$usages = $this->prepareUsages($subscription, $features, $date);
+
+			$this->seedPreparedUsages($usages);
 		}
 	}
 
@@ -59,5 +66,31 @@ class DbUsageRepo implements UsageRepo {
 		}
 		
 		return 0;
+	}
+
+	private function seedPreparedUsages($usages)
+	{
+		try
+		{
+			/*
+				insert ignore into _throttle_user_feature_usage (subscription_id, feature_id, used_quantity, date)
+				values (1, 1, 0, '2014-12-20'), (1, 1, 0, '2014-12-20'), (1, 1, 0, '2014-12-20'), (1, 1, 0, '2014-12-20')
+			 */
+			$values = [];
+			foreach($usages as $usage)
+			{
+				$values[] = "({$usage['subscription_id']}, {$usage['feature_id']}, {$usage['used_quantity']}, '{$usage['date']}')";
+			}
+
+			return $this->db->insert('
+					insert ignore into `'.Config::get('throttle::tables.user_feature_usage').'`
+					(`subscription_id`, `feature_id`, `used_quantity`, `date`)
+					values '.implode(',', $values)
+				);
+		}
+		catch(PDOException $e)
+		{
+			throw new Exceptions\InternalException;
+		}
 	}
 }

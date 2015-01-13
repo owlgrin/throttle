@@ -7,35 +7,48 @@ return array(
 		 * This table is required to keep track of the
 		 * various plans of our product.
 		 */
-		'plans' => 'plans',
+		'plans' => '_throttle_plans',
 		/**
 		 * This table is required to store all the features 
 		 * of our product
 		 */
-		'features' => 'features',
+		'features' => '_throttle_features',
 		/**
 		 * This table is required to map plans with features
 		 * of our product
 		 */
-		'plan_feature' => 'plan_feature',
+		'plan_feature' => '_throttle_plan_feature',
 		/**
 		 * This table is required to store subscriptions of the  
 		 * users with a particular plan
 		 */
-		'subscriptions' => 'subscriptions',
+		'subscriptions' => '_throttle_subscriptions',
 		/**
 		 * This table keeps the record of usage made by the user
 		 * of a particular feature
 		 */
-		'user_feature_usage' => 'user_feature_usage',
+		'user_feature_usage' => '_throttle_user_feature_usage',
 		/**
 		 * This table stores limit made by the user
 		 * of a particular feature
 		 */
-		'user_feature_limit' => 'user_feature_limit',
+		'user_feature_limit' => '_throttle_user_feature_limit',
 		/**
 		 * This table stores period used by the user
 		 */
-		'subscription_period' => 'subscription_period'
+		'subscription_period' => '_throttle_subscription_period'
 	),
+
+	/**
+	 * Set the default throttle plan.
+	 */
+	
+	'plan' => 'your-plan-identifier',
+	
+	/**
+	 * The default period class path to be used in throttle.
+	 */
+	
+	'period_class' => 'Owlgrin\Throttle\Period\CurrentMonthPeriod'
+
 );
