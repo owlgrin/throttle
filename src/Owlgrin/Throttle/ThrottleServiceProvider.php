@@ -84,6 +84,21 @@ class ThrottleServiceProvider extends ServiceProvider {
 			return $app->make('Owlgrin\Throttle\Commands\AddPeriodForUserCommand');
 		});
 
+		$this->app->bindShared('command.user.unsubscribe', function($app)
+		{
+			return $app->make('Owlgrin\Throttle\Commands\UserUnsubscribeCommand');
+		});
+
+		$this->app->bindShared('command.user.usage', function($app)
+		{
+			return $app->make('Owlgrin\Throttle\Commands\GetUsageOfUserCommand');
+		});
+
+		$this->app->bindShared('command.user.limit.increment', function($app)
+		{
+			return $app->make('Owlgrin\Throttle\Commands\IncrementLimitOfUserCommand');
+		});
+
 		$this->commands('command.throttle.table');
 		$this->commands('command.user.subscribe');
 		$this->commands('command.plan.entry');
@@ -92,6 +107,9 @@ class ThrottleServiceProvider extends ServiceProvider {
 		$this->commands('command.feature.list');
 		$this->commands('command.seed.daily.usage');
 		$this->commands('command.add.user.period');
+		$this->commands('command.user.unsubscribe');
+		$this->commands('command.user.usage');
+		$this->commands('command.user.limit.increment');
 	}
 
 	protected function registerRepositories()

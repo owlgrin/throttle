@@ -5,6 +5,7 @@ use Owlgrin\Throttle\Subscriber\SubscriberRepo as Subscriber;
 use Owlgrin\Throttle\Plan\PlanRepo as Plan;
 use Owlgrin\Throttle\Exceptions;
 use Owlgrin\Throttle\Period\PeriodRepo;
+use Owlgrin\Throttle\Period\PeriodInterface;
 use Owlgrin\Throttle\Limiter\LimiterInterface;
 /**
  * The Throttle core
@@ -71,18 +72,24 @@ class Throttle {
 		 if($this->subscriber->subscription($user))
 			throw new Exceptions\InternalException('Subscription already exists');
 
-		$this->subscriber->subscribe($user, $planIdentifier);
+		$subscriptionId = $this->subscriber->subscribe($user, $planIdentifier);
 		 
 		$this->user($user);
+
+		return $subscriptionId;
 	}
 
 	//unsubscribes a user to a specific plan
-	public function unsubscribe()
+	public function unsubscribe($user = null)
 	{
-		if(is_null($this->subscription))
+		$user = is_null($user) ? $this->user : $user;
+
+		if(! $this->subscriber->subscription($user))
 			throw new Exceptions\SubscriptionException('No Subscription exists');
 
-		return $this->subscriber->unsubscribe($this->user);
+		$this->subscriber->unsubscribe($user);
+
+		$this->periodRepo->unsetPeriodOfUser($user);
 	}
 	
 	public function setPeriod(PeriodInterface $period)
@@ -92,14 +99,16 @@ class Throttle {
 		return $this;
 	}
 
-	public function addPeriod(PeriodInterface $period)
+	public function addPeriod(PeriodInterface $period, $subscriptionId = null)
 	{
+		$subscriptionId = is_null($subscriptionId) ? $this->subscription['id'] : $subscriptionId;
+
 		if(is_null($this->subscription))
 			throw new Exceptions\SubscriptionException('No Subscription exists');
+	
+		$this->periodRepo->unsetPeriod($subscriptionId);
 
-		$this->periodRepo->unsetPeriod($this->subscription['id']);
-
-		$this->periodRepo->store($this->subscription['id'], $period->start(), $period->end());
+		$this->periodRepo->store($subscriptionId, $period->start(), $period->end());
 
 		return $this->user($this->user);
 	}
@@ -169,5 +178,15 @@ class Throttle {
 	public function addPlan($plan)
 	{
 		return $this->plan->add($plan);
+	}
+
+	public function getUsage($user = null, PeriodInterface $period)
+	{
+		$user = is_null($user) ? $this->user : $user;
+
+		if(! $this->subscriber->subscription($user))
+			throw new Exceptions\SubscriptionException('No Subscription exists');
+
+		return $this->subscriber->getUsage($user, $period->start(), $period->end());
 	}
 }
