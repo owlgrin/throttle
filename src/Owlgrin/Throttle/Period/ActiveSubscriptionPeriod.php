@@ -3,6 +3,7 @@
 use App;
 use Carbon\Carbon;
 use Owlgrin\Throttle\Period\PeriodInterface;
+use Owlgrin\Throttle\Period\PeriodInterfaceByUser;
 
 class ActiveSubscriptionPeriod implements PeriodInterface, PeriodInterfaceByUser {
 

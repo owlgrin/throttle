@@ -2,8 +2,14 @@
 
 use Carbon\Carbon;
 use Owlgrin\Throttle\Period\PeriodInterface;
+use Owlgrin\Throttle\Period\PeriodInterfaceByUser;
 
-class CurrentMonthPeriod implements PeriodInterface {
+class CurrentMonthPeriod implements PeriodInterface, PeriodInterfaceByUser {
+
+	public function __construct($user = null)
+	{
+		
+	}
 
 	public function start($formatted = false)
 	{
