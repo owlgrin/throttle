@@ -31,7 +31,7 @@ class Limiter implements LimiterInterface {
 
 			if( ! $this->hasAvailableQuota($limit, $count))
 			{
-				throw new Exceptions\LimitExceededException('Your limit of :attributes has been excedeed', ['attributes' => $identifier]);
+				throw new Exceptions\LimitExceededException('throttle::responses.general.limit_excedeed', ['attributes' => $identifier]);
 			}
 
 			$this->subscriberRepo->increment($subscriptionId, $identifier, $count);
@@ -44,7 +44,7 @@ class Limiter implements LimiterInterface {
 			//rollback if failed
 			$this->db->rollback();
 
-			throw new Exceptions\InternalException("Something went wrong with database");	
+			throw new Exceptions\InternalException;	
 		}
 	}
 
@@ -71,7 +71,7 @@ class Limiter implements LimiterInterface {
 			//rollback if failed
 			$this->db->rollback();
 
-			throw new Exceptions\InternalException("Something went wrong with database");	
+			throw new Exceptions\InternalException;	
 		}
 	}
 

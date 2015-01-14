@@ -29,7 +29,7 @@ class DbFeatureRepo implements FeatureRepo {
 		}
 		catch(PDOException $e)
 		{
-			throw new Exceptions\InternalException("Something went wrong with database");	
+			throw new Exceptions\InternalException;	
 		}
 	}
 
@@ -59,7 +59,7 @@ class DbFeatureRepo implements FeatureRepo {
 		}
 		catch(PDOException $e)
 		{
-			throw new Exceptions\InternalException("Something went wrong with database");	
+			throw new Exceptions\InternalException;	
 		}	
 	}
 }

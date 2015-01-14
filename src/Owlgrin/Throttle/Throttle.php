@@ -71,7 +71,7 @@ class Throttle {
 		$user = is_null($user) ? $this->user : $user;
 		
 		 if($this->subscriber->subscription($user))
-			throw new Exceptions\InternalException('Subscription already exists');
+			throw new Exceptions\InternalException('throttle::responses.message.subscription_exist');
 
 		$this->subscriber->subscribe($user, $planIdentifier);
 		
@@ -84,7 +84,7 @@ class Throttle {
 		$user = is_null($user) ? $this->user : $user;
 
 		if(! $this->subscriber->subscription($user))
-			throw new Exceptions\SubscriptionException('No Subscription exists');
+			throw new Exceptions\SubscriptionException;
 
 		$this->subscriber->unsubscribe($user);
 	}
@@ -99,7 +99,7 @@ class Throttle {
 	public function addPeriod(PeriodInterface $period)
 	{
 		if(is_null($this->subscription))
-			throw new Exceptions\SubscriptionException('No Subscription exists');
+			throw new Exceptions\SubscriptionException;
 	
 		$this->periodRepo->store($this->subscription['id'], $period->start(), $period->end());
 
@@ -109,7 +109,7 @@ class Throttle {
 	public function attempt($identifier, $count = 1)
 	{
 		if(is_null($this->subscription))
-			throw new Exceptions\SubscriptionException('No Subscription exists');
+			throw new Exceptions\SubscriptionException;
 
 		$this->limiter->attempt($this->subscription['id'], $identifier, $count, $this->period->start(), $this->period->end());
 
@@ -129,7 +129,7 @@ class Throttle {
 	public function softAttempt($identifier, $count = 1)
 	{
 		if(is_null($this->subscription))
-			throw new Exceptions\SubscriptionException('No Subscription exists');
+			throw new Exceptions\SubscriptionException;
 
 		$this->attempts[$identifier] = $this->limiter->softAttempt($this->subscription['id'], $identifier, $count, $this->period->start(), $this->period->end());
 	}
@@ -140,7 +140,7 @@ class Throttle {
 		if(is_null($period) or ! ($period instanceof PeriodInterface)) $period = $this->period;
 
 		if(is_null($this->subscription))
-			throw new Exceptions\SubscriptionException('No Subscription exists');
+			throw new Exceptions\SubscriptionException;
 
 		return $this->biller->bill($this->subscription['id'], $period->start(), $period->end());
 	}
@@ -154,7 +154,7 @@ class Throttle {
 	public function hit($identifier, $quantity = 1)
 	{
 		if(is_null($this->subscription))
-			throw new Exceptions\SubscriptionException('No Subscription exists');
+			throw new Exceptions\SubscriptionException;
 
 		$this->subscriber->increment($this->subscription['id'], $identifier, $quantity);
 	}
@@ -182,7 +182,7 @@ class Throttle {
 		if(is_null($period) or ! ($period instanceof PeriodInterface)) $period = $this->period;
 
 		if(! $this->subscription)
-			throw new Exceptions\SubscriptionException('No Subscription exists');
+			throw new Exceptions\SubscriptionException;
 
 		return $this->subscriber->getUsage($this->subscription['id'], $period->start(), $period->end());
 	}
