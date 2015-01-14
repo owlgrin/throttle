@@ -41,15 +41,126 @@ class PlanEntryCommand extends Command {
 	public function fire()
 	{
 		$plan = $this->argument('plan');
+		
+		$interactive = $this->option('i');
 
-		$this->plan->add(json_decode($plan, true));
+		if($interactive)
+		{			
+			$plan = $this->addPlanInteractively();
+		}
+		else
+		{
+			$plan = json_decode($plan, true);
+		}
 
-		$this->info('Plan Added Successfully');
+		$this->representPlanInTable($plan['plan']);
+		$this->representFeaturesInTable($plan['plan']);
+
+		$this->addPlanToDatabase($plan);
 	}
+
+	protected function addPlanInteractively()
+	{
+		$plan = [];
+
+		$plan['name'] = $this->ask('What is the name of the plan?');
+		$plan['identifier'] = $this->ask('What is the identifier of the plan?');
+		$plan['description'] = $this->ask('What description you would like to add?');
+
+		$plan['features'] = [];
+
+		$this->info("Lets add Features Now");
+
+		do 
+		{
+			$plan['features'][] = $this->addFeatures();
+
+		} while($this->confirm('Do you wish to add more features ? [yes|no]'));
+
+		$plan['plan'] = $plan;
+
+		return $plan;
+	}
+
+	public function addPlanToDatabase($plan)
+	{
+		if ($this->confirm('Do you wish to add plan to database ? [yes|no]'))
+		{
+			$this->plan->add($plan);
+			$this->info('Plan Added Successfully');
+		}
+	}
+
+	protected function addFeatures()
+	{
+		$feature = [];
+
+		$feature['name'] = $this->ask('Whats tha name Of The feature ?');
+		$feature['identifier'] = $this->ask('Whats tha identifier Of The feature ?');
+		$feature['tier'] = [];
+
+		$this->info('add tiers in this feature : '. $feature['name']);
+
+		do
+		{
+			$feature['tier'][] = $this->addTiersInFeature();
+
+		} while($this->confirm('Do you want to add more tiers? [yes|no]'));
+
+		return $feature;
+	}
+
+	protected function addTiersInFeature()
+	{
+		$tiers = [];
+
+		$tiers['rate'] = $this->ask('What would be the rate ?');		
+		$tiers['per_quantity'] = $this->ask('What would be the per_quantity ?');		
+		$tiers['limit'] = $this->ask('What would be the limit ?');
+
+		return $tiers;
+	}
+
+	protected function representPlanInTable($plan)
+	{
+		unset($plan['features']);
+
+		$this->info('Representing plan named : '. $plan['name']);
+
+		$this->table(['name', 'identifier', 'description'], [$plan]);
+	}
+	
+	protected function representFeaturesInTable($plan)
+	{
+		foreach($plan['features'] as $feature) 
+		{
+			$this->info('Representing feature : "'. $feature['name'] .'" of  plan : "'. $plan['name'] .'"');
+
+			$this->table(['name', 'identifier'], [ ['name' => $feature['name'] ,'identifier' => $feature['identifier']]]);
+
+			$this->representTiersInTable($feature['tier'], $feature['name']);
+		}
+	}
+
+	protected function representTiersInTable($tiers, $featureName)
+	{
+		$this->info('Representing tiers of feature : "'. $featureName .'"');
+
+		$this->table(['rate', 'per_quantity', 'limit'], $tiers);
+	}
+
 	protected function getArguments()
 	{
 		return array(
-			array('plan', InputArgument::REQUIRED, 'Stores a plan and its corresponding features'),
+			array('plan', InputArgument::OPTIONAL, 'Stores a plan and its corresponding features'),
 		);
 	}
+
+	protected function getOptions()
+	{
+		return array(
+			array('i', null, InputOption::VALUE_NONE, 'If you wants to add plan in interactive way', null)
+		);
+	}
+
 }
