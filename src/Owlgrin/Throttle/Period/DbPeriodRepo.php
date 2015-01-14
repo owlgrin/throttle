@@ -40,7 +40,7 @@ class DbPeriodRepo implements PeriodRepo {
 		{
 			$this->db->rollback();
 			
-			throw new Exceptions\InternalException("Something went wrong with database");	
+			throw new Exceptions\InternalException;	
 		}
 	}
 
@@ -66,7 +66,7 @@ class DbPeriodRepo implements PeriodRepo {
 		}
 		catch(PDOException $e)
 		{
-			throw new Exceptions\InternalException("Something went wrong with database");	
+			throw new Exceptions\InternalException;	
 		}
 	}
 
@@ -81,7 +81,7 @@ class DbPeriodRepo implements PeriodRepo {
 		}
 		catch(PDOException $e)
 		{
-			throw new Exceptions\InternalException("Something went wrong with database");	
+			throw new Exceptions\InternalException;	
 		}
 	}
 
@@ -97,7 +97,7 @@ class DbPeriodRepo implements PeriodRepo {
 		}
 		catch(PDOException $e)
 		{
-			throw new Exceptions\InternalException("Something went wrong with database");	
+			throw new Exceptions\InternalException;	
 		}
 	}
 
@@ -124,21 +124,27 @@ class DbPeriodRepo implements PeriodRepo {
 		}
 		catch(PDOException $e)
 		{
-			throw new Exceptions\InternalException("Something went wrong with database");	
+			throw new Exceptions\InternalException;	
 		}
 	}
 
 	private function isValidPeriodForSubscription($subscriptionId, $startDate, $endDate)
 	{
-		$periods = $this->db->table(Config::get('throttle::tables.subscription_period').' AS sp')
-				->where('sp.subscription_id', $subscriptionId)
-				->where(function($query) use ($startDate, $endDate)
-	            {
-					$query->whereBetween('sp.ends_at', array($startDate, $endDate))
-						  ->orWhereBetween('sp.starts_at', array($startDate, $endDate));
-	            })->get();
+		try
+		{
+			$periods = $this->db->table(Config::get('throttle::tables.subscription_period').' AS sp')
+					->where('sp.subscription_id', $subscriptionId)
+					->where(function($query) use ($startDate, $endDate)
+		            {
+						$query->whereBetween('sp.ends_at', array($startDate, $endDate))
+							  ->orWhereBetween('sp.starts_at', array($startDate, $endDate));
+		            })->get();
 
-		return count($periods) == 0; // valid only if there's no overlapping periods		
+			return count($periods) == 0; // valid only if there's no overlapping periods		
+		}
+		catch(PDOException $e)
+		{
+			throw new Exceptions\InternalException;	
+		}
 	}
-
 }

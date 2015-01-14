@@ -46,7 +46,7 @@ class DbPlanRepo implements PlanRepo {
 			//rollback if failed
 			$this->db->rollback();
 
-			throw new Exceptions\InternalException("Something went wrong with database");
+			throw new Exceptions\InternalException;
 		}
 	}
 
@@ -62,7 +62,7 @@ class DbPlanRepo implements PlanRepo {
 		}
 		catch(PDOException $e)
 		{
-			throw new Exceptions\InternalException("Something went wrong with database");	
+			throw new Exceptions\InternalException;	
 		}
 	}
 
@@ -86,7 +86,7 @@ class DbPlanRepo implements PlanRepo {
 		}
 		catch(PDOException $e)
 		{
-			throw new Exceptions\InternalException("Something went wrong with database");	
+			throw new Exceptions\InternalException;	
 		}
 	}
 
@@ -103,7 +103,7 @@ class DbPlanRepo implements PlanRepo {
 		}
 		catch(PDOException $e)
 		{
-			throw new Exceptions\InternalException("Something went wrong with database");	
+			throw new Exceptions\InternalException;	
 		}
 	}
 
@@ -122,7 +122,7 @@ class DbPlanRepo implements PlanRepo {
 		}
 		catch(PDOException $e)
 		{
-			throw new Exceptions\InternalException("Something went wrong with database");	
+			throw new Exceptions\InternalException;	
 		}
 	}
 
@@ -142,7 +142,7 @@ class DbPlanRepo implements PlanRepo {
 		}
 		catch(PDOException $e)
 		{
-			throw new Exceptions\InternalException("Something went wrong with database");	
+			throw new Exceptions\InternalException;	
 		}
 	}
 
@@ -156,7 +156,7 @@ class DbPlanRepo implements PlanRepo {
 		}
 		catch(PDOException $e)
 		{
-			throw new Exceptions\InternalException("Something went wrong with database");	
+			throw new Exceptions\InternalException;	
 		}
 	}
 
@@ -169,7 +169,7 @@ class DbPlanRepo implements PlanRepo {
 		}
 		catch(PDOException $e)
 		{
-			throw new Exceptions\InternalException("Something went wrong with database");	
+			throw new Exceptions\InternalException;	
 		}	
 	}
 }
