@@ -13,7 +13,7 @@ use Owlgrin\Throttle\Period\ActiveSubscriptionPeriod;
  */
 class Throttle {
 
-	protected $biller; 
+	protected $biller;
 	protected $subscriber;
 	protected $plan;
 	protected $periodRepo;
@@ -70,12 +70,12 @@ class Throttle {
 	public function subscribe($user, $planIdentifier)
 	{
 		$user = is_null($user) ? $this->user : $user;
-		
+
 		 if($this->subscriber->subscription($user))
 			throw new Exceptions\InternalException('throttle::responses.message.subscription_exist');
 
 		$this->subscriber->subscribe($user, $planIdentifier);
-		
+
 		$this->user($user);
 	}
 
@@ -89,7 +89,7 @@ class Throttle {
 
 		$this->subscriber->unsubscribe($user);
 	}
-	
+
 	public function setPeriod(PeriodInterface $period)
 	{
 		$this->period = $period;
@@ -101,7 +101,7 @@ class Throttle {
 	{
 		if(is_null($this->subscription))
 			throw new Exceptions\SubscriptionException;
-	
+
 		$this->periodRepo->store($this->subscription['id'], $period->start(), $period->end());
 
 		return $this->user($this->user);
@@ -109,39 +109,38 @@ class Throttle {
 
 	public function attempt($identifier, $count = 1)
 	{
-		if(array_get($this->features, $identifier))
-		{
-			if(is_null($this->subscription))
-				throw new Exceptions\SubscriptionException;
+		if(is_null(array_get($this->features, $identifier))) return;
 
-			$this->limiter->attempt($this->subscription['id'], $identifier, $count, $this->period->start(), $this->period->end());
+		if(is_null($this->subscription))
+			throw new Exceptions\SubscriptionException;
 
-			$this->attempts[$identifier] = $count;			
-		}
+		$this->limiter->attempt($this->subscription['id'], $identifier, $count, $this->period->start(), $this->period->end());
+
+		$this->attempts[$identifier] = $count;
 	}
 
-	public function can($identifier, $quantity = 0)
+	public function can($identifier, $quantity = 1)
 	{
-		return $this->attempts[$identifier] > $quantity;
+		if(is_null(array_get($this->features, $identifier))) return true;
+
+		return $this->attempts[$identifier] >= $quantity;
 	}
 
 	public function consume($identifier, $quantity = 1)
 	{
-		if(array_get($this->attempts, $identifier))
-		{
-			$this->attempts[$identifier] -= $quantity;
-		}
+		if(is_null(array_get($this->attempts, $identifier))) return;
+		
+		$this->attempts[$identifier] -= $quantity;
 	}
 
 	public function softAttempt($identifier, $count = 1)
 	{
-		if(array_get($this->features, $identifier))
-		{
-			if(is_null($this->subscription))
-				throw new Exceptions\SubscriptionException;
+		if(is_null(array_get($this->features, $identifier))) return;
+		
+		if(is_null($this->subscription))
+			throw new Exceptions\SubscriptionException;
 
-			$this->attempts[$identifier] = $this->limiter->softAttempt($this->subscription['id'], $identifier, $count, $this->period->start(), $this->period->end());
-		}
+		$this->attempts[$identifier] = $this->limiter->softAttempt($this->subscription['id'], $identifier, $count, $this->period->start(), $this->period->end());
 	}
 
 	public function bill($period = null)
@@ -163,13 +162,12 @@ class Throttle {
 	//increments usage of a particular identifier
 	public function hit($identifier, $quantity = 1)
 	{
-		if(array_get($this->features, $identifier))
-		{
-			if(is_null($this->subscription))
-				throw new Exceptions\SubscriptionException;
+		if(is_null(array_get($this->features, $identifier))) return;
+		
+		if(is_null($this->subscription))
+			throw new Exceptions\SubscriptionException;
 
-			$this->subscriber->increment($this->subscription['id'], $identifier, $quantity);
-		}
+		$this->subscriber->increment($this->subscription['id'], $identifier, $quantity);
 	}
 
 	//increments usage of a particular identifier
@@ -179,11 +177,11 @@ class Throttle {
 		{
 			if($quantity > 0)
 			{
-				$this->hit($identifier, -1 * $quantity);	
+				$this->hit($identifier, -1 * $quantity);
 			}
 		}
 	}
-	
+
 	public function addPlan($plan)
 	{
 		return $this->plan->add($plan);
