@@ -1,6 +1,6 @@
 <?php namespace Owlgrin\Throttle\Period;
 
-interface PeriodInterfaceByUser {
+interface PeriodByUserInterface {
 
 	public function __construct($user);
 }
