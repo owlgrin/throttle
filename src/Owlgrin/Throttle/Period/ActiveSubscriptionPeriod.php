@@ -3,9 +3,9 @@
 use App;
 use Carbon\Carbon;
 use Owlgrin\Throttle\Period\PeriodInterface;
-use Owlgrin\Throttle\Period\PeriodInterfaceByUser;
+use Owlgrin\Throttle\Period\PeriodByUserInterface;
 
-class ActiveSubscriptionPeriod implements PeriodInterface, PeriodInterfaceByUser {
+class ActiveSubscriptionPeriod implements PeriodInterface, PeriodByUserInterface {
 
 	protected $period;
 
