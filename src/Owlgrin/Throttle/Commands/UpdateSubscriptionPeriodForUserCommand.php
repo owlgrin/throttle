@@ -44,7 +44,6 @@ class UpdateSubscriptionPeriodForUserCommand extends Command {
  		parent::__construct();
 
 		$this->subscriptionRepo = $subscriptionRepo;
-		$this->period = App::make(Config::get('throttle::period_class'));
 	}
 
 	public function fire()
@@ -54,9 +53,12 @@ class UpdateSubscriptionPeriodForUserCommand extends Command {
 		$users = $this->getUsers();
 		
 		foreach($users as $index => $user) 
-		{				
+		{
+			
 			if($this->isRequiredToUpdatePeriod($user))
 			{
+				$this->period = App::make(Config::get('throttle::period_class'), ['user' => $user]);			
+				
 				$this->info('Updating user with ID ' . $user . ' subscription period to ' . $this->period->start(true) . ' - ' . $this->period->end(true));
 
 				Throttle::addPeriod($this->period);

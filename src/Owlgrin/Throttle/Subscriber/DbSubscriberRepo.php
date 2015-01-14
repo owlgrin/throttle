@@ -94,7 +94,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 				$this->usageRepo->seedBase($userId, [$this->subscription($userId)]);
 				
 				//adding subscription period
-				$period = App::make(Config::get('throttle::period_class'));
+				$period = App::make(Config::get('throttle::period_class'), ['user' => $userId]);
 				$this->periodRepo->store($subscriptionId, $period->start(), $period->end());
 			}
 					

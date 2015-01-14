@@ -20,6 +20,9 @@ class DbPeriodRepo implements PeriodRepo {
 			//starting a transition
 			$this->db->beginTransaction();
 
+			if( ! $this->isValidPeriodForSubscription($subscriptionId, $startDate, $endDate))
+				throw new Exceptions\InvalidInputException();
+
 			$this->unsetPeriod($subscriptionId);
 
 			$periodId = $this->db->table(Config::get('throttle::tables.subscription_period'))->insertGetId([
@@ -41,14 +44,25 @@ class DbPeriodRepo implements PeriodRepo {
 		}
 	}
 
-	public function getPeriodBySubscription($subscriptionId)
+	public function getPeriodBySubscription($subscriptionId, $date = null)
 	{
 		try
 		{
-			return $this->db->table(Config::get('throttle::tables.subscription_period'))
-				->where('subscription_id', $subscriptionId)
-				->where('is_active', 1)
-				->first();
+			$query = $this->db->table(Config::get('throttle::tables.subscription_period'). ' AS sp')
+				->where('sp.subscription_id', $subscriptionId);
+
+			if( ! is_null($date))
+			{
+				$query->where('sp.starts_at', '<=', $date);
+				$query->where('sp.ends_at', '>=', $date);
+			}
+			else
+			{
+				$query->where('sp.starts_at', '<=', $this->db->raw('now()'));
+				$query->where('sp.ends_at', '>=', $this->db->raw('now()'));
+			}
+
+			return $query->first();
 		}
 		catch(PDOException $e)
 		{
@@ -87,20 +101,44 @@ class DbPeriodRepo implements PeriodRepo {
 		}
 	}
 
-	public function getPeriodByUser($userId)
+	public function getPeriodByUser($userId, $date = null)
 	{
 		try
 		{
-			return $this->db->table(Config::get('throttle::tables.subscription_period').' AS sp')
+			$query = $this->db->table(Config::get('throttle::tables.subscription_period').' AS sp')
 				->join(Config::get('throttle::tables.subscriptions').' AS s', 's.id', '=', 'sp.subscription_id')
-				->where('s.user_id', $userId)
-				->where('sp.is_active', 1)
-				->first();
+				->where('s.user_id', $userId);
+
+			if( ! is_null($date))
+			{
+				$query->where('sp.starts_at', '<=', $date);
+				$query->where('sp.ends_at', '>=', $date);
+			}
+			else
+			{
+				$query->where('sp.starts_at', '<=', $this->db->raw('now()'));
+				$query->where('sp.ends_at', '>=', $this->db->raw('now()'));
+			}
+
+			return $query->first();
 		}
 		catch(PDOException $e)
 		{
 			throw new Exceptions\InternalException("Something went wrong with database");	
 		}
+	}
+
+	private function isValidPeriodForSubscription($subscriptionId, $startDate, $endDate)
+	{
+		$periods = $this->db->table(Config::get('throttle::tables.subscription_period').' AS sp')
+				->where('sp.subscription_id', $subscriptionId)
+				->where(function($query) use ($startDate, $endDate)
+	            {
+					$query->whereBetween('sp.ends_at', array($startDate, $endDate))
+						  ->orWhereBetween('sp.starts_at', array($startDate, $endDate));
+	            })->get();
+
+		return count($periods) == 0; // valid only if there's no overlapping periods		
 	}
 
 }
