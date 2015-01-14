@@ -42,20 +42,17 @@ return array(
 	/**
 	 * Set the default throttle plan.
 	 */
-	
 	'plan' => 'your-plan-identifier',
 	
 	/**
 	 * The default period class path to be used in throttle.
 	 */
-	
 	'period_class' => 'Owlgrin\Throttle\Period\CurrentMonthPeriod',
 
 	/**
 	 * Define feature indetifier and its seeder class path
 	 * which will be used while seeding daily base usage of features.
 	 */
-	
 	'seeders' => array(
 		'feature-identifier' => 'Seeder-class-path'
 	)
