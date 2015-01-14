@@ -53,8 +53,7 @@ class UpdateSubscriptionPeriodForUserCommand extends Command {
 		$users = $this->getUsers();
 		
 		foreach($users as $index => $user) 
-		{
-			
+		{			
 			if($this->isRequiredToUpdatePeriod($user))
 			{
 				$this->period = App::make(Config::get('throttle::period_class'), ['user' => $user]);			
