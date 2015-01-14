@@ -1,20 +1,17 @@
 <?php namespace Owlgrin\Throttle\Period;
 
+use App;
 use Carbon\Carbon;
 use Owlgrin\Throttle\Period\PeriodInterface;
-use App;
+use Owlgrin\Throttle\Period\PeriodByUserInterface;
 
-class ActiveSubscriptionPeriod implements PeriodInterface {
+class ActiveSubscriptionPeriod implements PeriodInterface, PeriodByUserInterface {
 
 	protected $period;
 
-	public function __construct($userId, $isSubscription = false)
+	public function __construct($user)
 	{
-		$periodRepo = App::make('Owlgrin\Throttle\Period\PeriodRepo');
-		
-		$this->period = $isSubscription 
-			? $periodRepo->getPeriodBySubscription($userId)
-			: $periodRepo->getPeriodByUser($userId);
+		$this->period = App::make('Owlgrin\Throttle\Period\PeriodRepo')->getPeriodByUser($user);
 	}
 
 	public function start($formatted = false)
