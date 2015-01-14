@@ -35,6 +35,7 @@ class Throttle {
 	//sets user's details at the time of initialisation
 	public function user($user)
 	{
+
 		$this->user = $user;
 		$this->subscription = $this->subscriber->subscription($this->user);
 		$this->features = $this->plan->getFeaturesByPlan($this->subscription['plan_id']);
@@ -108,12 +109,15 @@ class Throttle {
 
 	public function attempt($identifier, $count = 1)
 	{
-		if(is_null($this->subscription))
-			throw new Exceptions\SubscriptionException;
+		if(! is_null(array_get($this->features, $identifier)))
+		{
+			if(is_null($this->subscription))
+				throw new Exceptions\SubscriptionException;
 
-		$this->limiter->attempt($this->subscription['id'], $identifier, $count, $this->period->start(), $this->period->end());
+			$this->limiter->attempt($this->subscription['id'], $identifier, $count, $this->period->start(), $this->period->end());
 
-		$this->attempts[$identifier] = $count;
+			$this->attempts[$identifier] = $count;			
+		}
 	}
 
 	public function can($identifier, $quantity = 0)
@@ -123,7 +127,10 @@ class Throttle {
 
 	public function consume($identifier, $quantity = 1)
 	{
-		$this->attempts[$identifier] -= $quantity;
+		if(array_get($this->attempts, $identifier))
+		{
+			$this->attempts[$identifier] -= $quantity;
+		}
 	}
 
 	public function softAttempt($identifier, $count = 1)
