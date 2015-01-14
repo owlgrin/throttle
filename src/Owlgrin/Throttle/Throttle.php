@@ -38,7 +38,7 @@ class Throttle {
 		$this->user = $user;
 		$this->subscription = $this->subscriber->subscription($this->user);
 		$this->features = $this->plan->getFeaturesByPlan($this->subscription['plan_id']);
-		$this->period = new ActiveSubscriptionPeriod($this->subscription['id'], true);
+		$this->period = new ActiveSubscriptionPeriod($this->user);
 
 		return $this;
 	}
