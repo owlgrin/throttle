@@ -40,33 +40,7 @@ class DbPeriodRepo implements PeriodRepo {
 			
 			throw new Exceptions\InternalException;	
 		}
-	}
-
-	public function getPeriodBySubscription($subscriptionId, $date = null)
-	{
-		try
-		{
-			$query = $this->db->table(Config::get('throttle::tables.subscription_period'). ' AS sp')
-				->where('sp.subscription_id', $subscriptionId);
-
-			if( ! is_null($date))
-			{
-				$query->where('sp.starts_at', '<=', $date);
-				$query->where('sp.ends_at', '>=', $date);
-			}
-			else
-			{
-				$query->where('sp.starts_at', '<=', $this->db->raw('now()'));
-				$query->where('sp.ends_at', '>=', $this->db->raw('now()'));
-			}
-
-			return $query->first();
-		}
-		catch(PDOException $e)
-		{
-			throw new Exceptions\InternalException;	
-		}
-	}
+	}	
 
 	public function unsetPeriod($subscriptionId)
 	{
@@ -99,7 +73,68 @@ class DbPeriodRepo implements PeriodRepo {
 		}
 	}
 
-	public function getPeriodByUser($userId, $date = null)
+	public function getActivePeriodBySubscription($subscriptionId)
+	{
+		try
+		{
+			$period = $this->db->table(Config::get('throttle::tables.subscription_period'). ' AS sp')
+				->where('sp.subscription_id', $subscriptionId)
+				->where('sp.is_active', 1)
+				->first();
+
+			return $period;
+		}
+		catch(PDOException $e)
+		{
+			throw new Exceptions\InternalException;	
+		}
+	}
+
+	public function getActivePeriodByUser($userId)
+	{
+		try
+		{
+			$period = $this->db->table(Config::get('throttle::tables.subscription_period').' AS sp')
+				->join(Config::get('throttle::tables.subscriptions').' AS s', 's.id', '=', 'sp.subscription_id')
+				->where('s.user_id', $userId)
+				->where('sp.is_active', 1)
+				->first();
+			
+			return $period;
+		}
+		catch(PDOException $e)
+		{
+			throw new Exceptions\InternalException;	
+		}
+	}
+
+	public function getCurrentPeriodBySubscription($subscriptionId, $date = null)
+	{
+		try
+		{
+			$query = $this->db->table(Config::get('throttle::tables.subscription_period'). ' AS sp')
+				->where('sp.subscription_id', $subscriptionId);
+
+			if( ! is_null($date))
+			{
+				$query->where('sp.starts_at', '<=', $date);
+				$query->where('sp.ends_at', '>=', $date);
+			}
+			else
+			{
+				$query->where('sp.starts_at', '<=', $this->db->raw('now()'));
+				$query->where('sp.ends_at', '>=', $this->db->raw('now()'));
+			}
+
+			return $query->first();
+		}
+		catch(PDOException $e)
+		{
+			throw new Exceptions\InternalException;	
+		}
+	}
+
+	public function getCurrentPeriodByUser($userId, $date = null)
 	{
 		try
 		{

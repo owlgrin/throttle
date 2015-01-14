@@ -4,9 +4,13 @@ interface PeriodRepo {
 	
 	public function store($subscriptionId, $start, $end);
 
-	public function getPeriodBySubscription($subscriptionId, $date);
+	public function getActivePeriodBySubscription($subscriptionId);
 
-	public function getPeriodByUser($subscriptionId, $date);
+	public function getActivePeriodByUser($subscriptionId);
+	
+	public function getCurrentPeriodBySubscription($subscriptionId, $date);
+	
+	public function getCurrentPeriodByUser($subscriptionId, $date);
 
 	public function unsetPeriod($subscriptionId);
 }
