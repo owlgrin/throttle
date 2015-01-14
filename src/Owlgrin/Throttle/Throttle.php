@@ -109,7 +109,7 @@ class Throttle {
 
 	public function attempt($identifier, $count = 1)
 	{
-		if(! is_null(array_get($this->features, $identifier)))
+		if(array_get($this->features, $identifier))
 		{
 			if(is_null($this->subscription))
 				throw new Exceptions\SubscriptionException;
@@ -135,10 +135,13 @@ class Throttle {
 
 	public function softAttempt($identifier, $count = 1)
 	{
-		if(is_null($this->subscription))
-			throw new Exceptions\SubscriptionException;
+		if(array_get($this->features, $identifier))
+		{
+			if(is_null($this->subscription))
+				throw new Exceptions\SubscriptionException;
 
-		$this->attempts[$identifier] = $this->limiter->softAttempt($this->subscription['id'], $identifier, $count, $this->period->start(), $this->period->end());
+			$this->attempts[$identifier] = $this->limiter->softAttempt($this->subscription['id'], $identifier, $count, $this->period->start(), $this->period->end());
+		}
 	}
 
 	public function bill($period = null)
@@ -160,10 +163,13 @@ class Throttle {
 	//increments usage of a particular identifier
 	public function hit($identifier, $quantity = 1)
 	{
-		if(is_null($this->subscription))
-			throw new Exceptions\SubscriptionException;
+		if(array_get($this->features, $identifier))
+		{
+			if(is_null($this->subscription))
+				throw new Exceptions\SubscriptionException;
 
-		$this->subscriber->increment($this->subscription['id'], $identifier, $quantity);
+			$this->subscriber->increment($this->subscription['id'], $identifier, $quantity);
+		}
 	}
 
 	//increments usage of a particular identifier
