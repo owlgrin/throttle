@@ -101,7 +101,7 @@ class ThrottleServiceProvider extends ServiceProvider {
 
 		$this->app->bindShared('command.user.limit.increment', function($app)
 		{
-			return $app->make('Owlgrin\Throttle\Commands\IncrementLimitOfUserCommand');
+			return $app->make('Owlgrin\Throttle\Commands\IncrementFeatureLimitOfUserCommand');
 		});
 
 		$this->commands('command.throttle.table');

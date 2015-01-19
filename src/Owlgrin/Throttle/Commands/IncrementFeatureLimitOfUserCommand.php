@@ -10,7 +10,7 @@ use Throttle;
 /**
  * Command to generate the required migration
  */
-class IncrementLimitOfUserCommand extends Command {
+class IncrementFeatureLimitOfUserCommand extends Command {
 
 	/**
 	 * The console command name.
@@ -46,19 +46,37 @@ class IncrementLimitOfUserCommand extends Command {
 		$feature = $this->option('feature');
 		$value = $this->option('value');
 		
-		$subscription = $this->subscriptionRepo->subscription($userId);
+		if(is_null($userId))
+		{
+			$this->error("Should add userid as option");
+		}		
 
-		$this->subscriptionRepo->incrementLimit($subscription['id'], $feature, $value);
+		if(is_null($feature))
+		{
+			$this->error("Should add feature name as option");
+		}
 
-		$this->info('User With id '.$userId.' has incremented the usage with value:'. $value);
+		if(is_null($value))
+		{
+			$this->error("Should add value as option");
+		}
+
+		if(! is_null($userId) and ! is_null($feature) and ! is_null($value))
+		{
+			$subscription = $this->subscriptionRepo->subscription($userId);
+
+			$this->subscriptionRepo->incrementLimit($subscription['id'], $feature, $value);
+
+			$this->info('User With id '.$userId.' has incremented the usage with value:'. $value);
+		}
 	}
 
 	protected function getOptions()
 	{
 		return array(
-			array('user', null, InputOption::VALUE_OPTIONAL, 'The id of the user whose feature\'s limit to change', null),
-			array('feature', null, InputOption::VALUE_OPTIONAL, 'The name of feature identifier whose limit to increase', null),
-			array('value', null, InputOption::VALUE_OPTIONAL, 'The value of the feature to increase', null)
+			array('user', null, InputOption::VALUE_REQUIRED, 'The id of the user whose feature\'s limit to change', null),
+			array('feature', null, InputOption::VALUE_REQUIRED, 'The name of feature identifier whose limit to increase', null),
+			array('value', null, InputOption::VALUE_REQUIRED, 'The value of the feature to increase', null)
 		);
 	}
 }
