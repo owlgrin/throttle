@@ -1,7 +1,6 @@
 <?php namespace Owlgrin\Throttle\Commands;
 
 use Illuminate\Console\Command;
-use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputArgument;
 
 use Owlgrin\Throttle\Subscriber\SubscriberRepo;
@@ -42,41 +41,23 @@ class IncrementFeatureLimitOfUserCommand extends Command {
 
 	public function fire()
 	{
-		$userId = $this->option('user');
-		$feature = $this->option('feature');
-		$value = $this->option('value');
-		
-		if(is_null($userId))
-		{
-			$this->error("Should add userid as option");
-		}		
+		$userId = $this->argument('user');
+		$feature = $this->argument('feature');
+		$value = $this->argument('value');
 
-		if(is_null($feature))
-		{
-			$this->error("Should add feature name as option");
-		}
+		$subscription = $this->subscriptionRepo->subscription($userId);
 
-		if(is_null($value))
-		{
-			$this->error("Should add value as option");
-		}
+		$this->subscriptionRepo->incrementLimit($subscription['id'], $feature, $value);
 
-		if(! is_null($userId) and ! is_null($feature) and ! is_null($value))
-		{
-			$subscription = $this->subscriptionRepo->subscription($userId);
-
-			$this->subscriptionRepo->incrementLimit($subscription['id'], $feature, $value);
-
-			$this->info('User With id '.$userId.' has incremented the usage with value:'. $value);
-		}
+		$this->info('User With id '.$userId.' has incremented the usage with value:'. $value);
 	}
 
-	protected function getOptions()
+	protected function getArguments()
 	{
 		return array(
-			array('user', null, InputOption::VALUE_REQUIRED, 'The id of the user whose feature\'s limit to change', null),
-			array('feature', null, InputOption::VALUE_REQUIRED, 'The name of feature identifier whose limit to increase', null),
-			array('value', null, InputOption::VALUE_REQUIRED, 'The value of the feature to increase', null)
+			array('user', InputArgument::REQUIRED, 'The id of the user whose feature\'s limit to change'),
+			array('feature', InputArgument::REQUIRED, 'The name of feature identifier whose limit to increase'),
+			array('value', InputArgument::REQUIRED, 'The value of the feature to increase')
 		);
 	}
 }
