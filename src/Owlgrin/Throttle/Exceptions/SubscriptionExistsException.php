@@ -2,12 +2,12 @@
 
 use Illuminate\Support\MessageBag;
 
-class SubscriptionException extends Exception {
+class SubscriptionExistsException extends Exception {
 
 	/**
 	 * Message
 	 */
-	const MESSAGE = 'throttle::responses.message.not_subscribed';
+	const MESSAGE = 'throttle::responses.message.subscription_exist';
 
 	/**
 	 * Code
