@@ -35,7 +35,6 @@ class Throttle {
 	//sets user's details at the time of initialisation
 	public function user($user)
 	{
-
 		$this->user = $user;
 		$this->subscription = $this->subscriber->subscription($this->user);
 		$this->features = $this->plan->getFeaturesByPlan($this->subscription['plan_id']);
