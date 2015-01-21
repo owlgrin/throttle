@@ -1,7 +1,6 @@
 <?php namespace Owlgrin\Throttle\Commands;
 
 use Illuminate\Console\Command;
-use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputArgument;
 
 use Owlgrin\Throttle\Subscriber\SubscriberRepo;
@@ -10,7 +9,7 @@ use Throttle;
 /**
  * Command to generate the required migration
  */
-class IncrementLimitOfUserCommand extends Command {
+class IncrementFeatureLimitOfUserCommand extends Command {
 
 	/**
 	 * The console command name.
@@ -42,10 +41,10 @@ class IncrementLimitOfUserCommand extends Command {
 
 	public function fire()
 	{
-		$userId = $this->option('user');
-		$feature = $this->option('feature');
-		$value = $this->option('value');
-		
+		$userId = $this->argument('user');
+		$feature = $this->argument('feature');
+		$value = $this->argument('value');
+
 		$subscription = $this->subscriptionRepo->subscription($userId);
 
 		$this->subscriptionRepo->incrementLimit($subscription['id'], $feature, $value);
@@ -53,12 +52,12 @@ class IncrementLimitOfUserCommand extends Command {
 		$this->info('User With id '.$userId.' has incremented the usage with value:'. $value);
 	}
 
-	protected function getOptions()
+	protected function getArguments()
 	{
 		return array(
-			array('user', null, InputOption::VALUE_OPTIONAL, 'The id of the user whose feature\'s limit to change', null),
-			array('feature', null, InputOption::VALUE_OPTIONAL, 'The name of feature identifier whose limit to increase', null),
-			array('value', null, InputOption::VALUE_OPTIONAL, 'The value of the feature to increase', null)
+			array('user', InputArgument::REQUIRED, 'The id of the user whose feature\'s limit to change'),
+			array('feature', InputArgument::REQUIRED, 'The name of feature identifier whose limit to increase'),
+			array('value', InputArgument::REQUIRED, 'The value of the feature to increase')
 		);
 	}
 }

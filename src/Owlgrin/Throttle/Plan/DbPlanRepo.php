@@ -172,4 +172,36 @@ class DbPlanRepo implements PlanRepo {
 			throw new Exceptions\InternalException;	
 		}	
 	}
+
+	public function getFeatureLimitByPlanIdentifier($planIdentifier)
+	{
+		try
+		{
+			/**
+			 * Accepting planIdentifier
+			 * and joining three tables plans, features and plan_feature
+			 * and returning features, with their identifier and with their
+			 * limit
+			 * we have done order by tiers descenting to check if last limit is
+			 * null then limit should return null else sum of the limits
+			 * Here's the query -> IF(`limit` IS NULL, NULL, SUM(`limit`))
+			 */
+			return $this->db->select(
+				$this->db->raw("SELECT `feature_id` as featureId,
+				 `identifier` as identifier, IF(`limit` IS NULL, NULL, 
+				 SUM(`limit`)) AS `limit` FROM (SELECT pf.`feature_id`, 
+				 pf.`limit`, f.`identifier` FROM ".Config::get('throttle::tables.plan_feature')."
+				 AS pf JOIN ".Config::get('throttle::tables.features')." AS f 
+				 ON f.id = pf.feature_id JOIN ".Config::get('throttle::tables.plans')." AS p 
+				 ON p.id = pf.plan_id WHERE p.`identifier` = :planIdentifier 
+				 ORDER BY pf.`tier` DESC) AS `t1` GROUP BY `feature_id`"), 
+				['planIdentifier' => $planIdentifier]
+			);
+		}
+		catch(PDOException $e)
+		{
+			throw new Exceptions\InternalException;	
+		}
+	}
+
 }

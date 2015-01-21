@@ -27,13 +27,6 @@ class GetUsageOfUserCommand extends Command {
 	protected $description = 'Find\'s usage of the user';
 
 	/**
-	 * Subscriber Repo.
-	 *
-	 * @var object
-	 */
-	protected $subscriptionRepo;
-
-	/**
 	 * Execute the console command.
 	 *
 	 * @return void

@@ -97,7 +97,6 @@ class DbSubscriberRepo implements SubscriberRepo {
 				$period = App::make(Config::get('throttle::period_class'), ['user' => $userId]);
 				$this->periodRepo->store($subscriptionId, $period->start(), $period->end());
 			}
-
 					
 			//commition the work after processing
 			$this->db->commit();
@@ -323,7 +322,6 @@ class DbSubscriberRepo implements SubscriberRepo {
 					end as `used_quantity`
 				from
 					`'.Config::get('throttle::tables.user_feature_usage').'` as `ufu` 
-					inner join `'.Config::get('throttle::tables.subscriptions').'` as `s`
 					inner join `'.Config::get('throttle::tables.features').'` as `f`
 					inner join `'.Config::get('throttle::tables.user_feature_limit').'` as `ufl`
 				on

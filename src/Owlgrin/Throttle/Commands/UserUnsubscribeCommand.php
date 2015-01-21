@@ -1,7 +1,6 @@
 <?php namespace Owlgrin\Throttle\Commands;
 
 use Illuminate\Console\Command;
-use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputArgument;
 
 use Throttle;
@@ -38,17 +37,17 @@ class UserUnsubscribeCommand extends Command {
 
 	public function fire()
 	{
-		$userId = $this->option('user');
+		$userId = $this->argument('user');
 
 		Throttle::unsubscribe($userId);
 		
 		$this->info('User With id '.$userId.' has been unsubscribed');
 	}
 
-	protected function getOptions()
+	protected function getArguments()
 	{
 		return array(
-			array('user', null, InputOption::VALUE_REQUIRED, 'The id of the user who wants to unsubscribe', null)
+			array('user', InputArgument::REQUIRED, 'The id of the user who wants to unsubscribe')
 		);
 	}
 }
