@@ -31,7 +31,7 @@ class Limiter implements LimiterInterface {
 
 			if( ! $this->hasAvailableQuota($limit, $count))
 			{
-				throw new Exceptions\LimitExceededException('throttle::responses.general.limit_excedeed', ['attributes' => $identifier]);
+				throw new Exceptions\LimitExceededException('throttle::responses.message.limit_excedeed', ['attributes' => $identifier]);
 			}
 
 			$this->subscriberRepo->increment($subscriptionId, $identifier, $count);
