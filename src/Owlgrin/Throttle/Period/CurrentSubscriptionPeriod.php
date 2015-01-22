@@ -3,13 +3,13 @@
 use App;
 use Carbon\Carbon;
 
-class ActiveSubscriptionPeriod implements PeriodInterface, PeriodByUserInterface {
+class CurrentSubscriptionPeriod implements PeriodInterface, PeriodByUserInterface {
 
 	protected $period;
 
 	public function __construct($user)
 	{
-		$this->period = App::make('Owlgrin\Throttle\Period\PeriodRepo')->getActivePeriodByUser($user);
+		$this->period = App::make('Owlgrin\Throttle\Period\PeriodRepo')->getCurrentPeriodByUser($user);
 	}
 
 	public function start($formatted = false)

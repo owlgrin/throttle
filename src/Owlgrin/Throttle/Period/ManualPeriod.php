@@ -1,7 +1,6 @@
 <?php namespace Owlgrin\Throttle\Period;
 
 use Carbon\Carbon;
-use Owlgrin\Throttle\Period\PeriodInterface;
 
 class ManualPeriod implements PeriodInterface {
 

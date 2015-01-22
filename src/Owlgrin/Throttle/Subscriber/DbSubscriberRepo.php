@@ -256,7 +256,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 		}
 		catch(PDOException $e)
 		{
-			throw new Exceptions\SubscriptionException('No Subscription exists');
+			throw new Exceptions\InternalException;
 		}
 	}
 
