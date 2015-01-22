@@ -6,7 +6,6 @@ use Symfony\Component\Console\Input\InputArgument;
 
 use Owlgrin\Throttle\Biller\Biller;
 use Owlgrin\Throttle\Subscriber\SubscriberRepo;
-use Owlgrin\Throttle\Period\ActiveSubscriptionPeriod;
 use Owlgrin\Throttle\Period\ManualPeriod;
 
 use Throttle;

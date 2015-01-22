@@ -10,17 +10,12 @@ class InvalidInputException extends Exception {
 	const MESSAGE = 'throttle::responses.message.invalid_input';
 
 	/**
-	 * Code
-	 */
-	const CODE = 400;
-
-	/**
 	 * Constructor
 	 * @param mixed $messages
 	 * @param array $replacers
 	 */
 	public function __construct($messages = self::MESSAGE, $replacers = array())
 	{
-		parent::__construct($messages, $replacers, self::CODE);
+		parent::__construct($messages, $replacers);
 	}
 }

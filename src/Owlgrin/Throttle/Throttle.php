@@ -7,7 +7,7 @@ use Owlgrin\Throttle\Exceptions;
 use Owlgrin\Throttle\Period\PeriodRepo;
 use Owlgrin\Throttle\Period\PeriodInterface;
 use Owlgrin\Throttle\Limiter\LimiterInterface;
-use Owlgrin\Throttle\Period\ActiveSubscriptionPeriod;
+use Owlgrin\Throttle\Period\CurrentSubscriptionPeriod;
 /**
  * The Throttle core
  */
@@ -42,7 +42,7 @@ class Throttle {
 			throw new Exceptions\NoSubscriptionException;
 
 		$this->features = $this->plan->getFeaturesByPlan($this->subscription['plan_id']);
-		$this->period = new ActiveSubscriptionPeriod($this->user);
+		$this->period = new CurrentSubscriptionPeriod($this->user);
 
 		return $this;
 	}
