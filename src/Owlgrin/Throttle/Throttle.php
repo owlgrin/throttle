@@ -36,7 +36,11 @@ class Throttle {
 	public function user($user)
 	{
 		$this->user = $user;
+		
 		$this->subscription = $this->subscriber->subscription($this->user);
+		if(! $this->subscription)
+			throw new Exceptions\NoSubscriptionException;
+
 		$this->features = $this->plan->getFeaturesByPlan($this->subscription['plan_id']);
 		$this->period = new ActiveSubscriptionPeriod($this->user);
 
