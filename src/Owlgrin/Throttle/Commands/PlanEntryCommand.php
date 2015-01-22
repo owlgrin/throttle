@@ -40,6 +40,7 @@ class PlanEntryCommand extends Command {
 
 	public function fire()
 	{
+
 		$plan = $this->argument('plan');
 		
 		$interactive = $this->option('i');
@@ -97,6 +98,8 @@ class PlanEntryCommand extends Command {
 
 		$feature['name'] = $this->ask('Whats tha name Of The feature ?');
 		$feature['identifier'] = $this->ask('Whats tha identifier Of The feature ?');
+		$feature['aggregator'] = $this->choice('Whats the aggregator Of The feature ?[sum|max]', ['max', 'sum']);
+
 		$feature['tier'] = [];
 
 		$this->info('add tiers in this feature : '. $feature['name']);
@@ -136,7 +139,7 @@ class PlanEntryCommand extends Command {
 		{
 			$this->info('Representing feature : "'. $feature['name'] .'" of  plan : "'. $plan['name'] .'"');
 
-			$this->table(['name', 'identifier'], [ ['name' => $feature['name'] ,'identifier' => $feature['identifier']]]);
+			$this->table(['name', 'identifier', 'aggregator'], [ ['name' => $feature['name'] ,'identifier' => $feature['identifier'], 'aggregator' => $feature['aggregator']]]);
 
 			$this->representTiersInTable($feature['tier'], $feature['name']);
 		}
