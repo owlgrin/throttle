@@ -10,7 +10,7 @@ class LimitExceededException extends Exception {
 	/**
 	 * Code
 	 */
-	const CODE = 400;
+	const CODE = 403;
 
 	/**
 	 * Constructor

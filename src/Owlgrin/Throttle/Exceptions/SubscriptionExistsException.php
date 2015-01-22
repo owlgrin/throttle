@@ -12,7 +12,7 @@ class SubscriptionExistsException extends Exception {
 	/**
 	 * Code
 	 */
-	const CODE = 400;
+	const CODE = 302;
 
 	/**
 	 * Constructor
