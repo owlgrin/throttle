@@ -10,17 +10,12 @@ class SubscriptionExistsException extends Exception {
 	const MESSAGE = 'throttle::responses.message.subscription_exist';
 
 	/**
-	 * Code
-	 */
-	const CODE = 302;
-
-	/**
 	 * Constructor
 	 * @param mixed $messages
 	 * @param array $replacers
 	 */
 	public function __construct($messages = self::MESSAGE, $replacers = array())
 	{
-		parent::__construct($messages, $replacers, self::CODE);
+		parent::__construct($messages, $replacers);
 	}
 }

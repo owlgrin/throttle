@@ -12,23 +12,17 @@ abstract class Exception extends BaseException {
 	const MESSAGE = 'throttle::responses.message.bad_request';
 
 	/**
-	 * Default code
-	 */
-	const CODE = 400;
-
-	/**
 	 * Constructor
 	 * @param MessageBag|string|null $messages
 	 * @param array  $replacers
-	 * @param number $code
 	 */
-	public function __construct($messages = null, $replacers = array(), $code = self::CODE)
+	public function __construct($messages = null, $replacers = array())
 	{
 		$message = Lang::get($this->fetchMessage($messages));
 
 		$message = $this->replacePlaceholders($message, $replacers);
 
-		parent::__construct($message, $code);
+		parent::__construct($message);
 	}
 
 	/**
