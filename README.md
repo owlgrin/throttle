@@ -6,7 +6,7 @@ Installation
 ============
 To install the package, include the following in your composer.json.
 ```
-"sahil/throttle": "dev-master"
+"owlgrin/throttle": "dev-master"
 ```
 
 And then include the following service provider in your app.php.
@@ -18,7 +18,7 @@ And then include the following service provider in your app.php.
 
 And lastly, publish the config.
 ```
-php artisan config:publish sahil/throttle
+php artisan config:publish owlgrin/throttle
 ```
 
 Usage
