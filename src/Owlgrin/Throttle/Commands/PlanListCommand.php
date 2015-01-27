@@ -42,6 +42,6 @@ class PlanListCommand extends Command {
 	{
 		$plans = $this->plan->getAllPlans();
 
-		print_r($plans);
+		$this->table(['ID', 'Name', 'Identifier', 'Description'], $plans);
 	}
 }

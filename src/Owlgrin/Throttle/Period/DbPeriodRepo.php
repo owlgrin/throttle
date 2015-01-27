@@ -21,7 +21,7 @@ class DbPeriodRepo implements PeriodRepo {
 			$this->db->beginTransaction();
 
 			if( ! $this->isValidPeriodForSubscription($subscriptionId, $startDate, $endDate))
-				throw new Exceptions\InvalidInputException();
+				throw new Exceptions\InvalidInputException('Invalid period(' . $startDate . '-' . $endDate . ') for Subscription ID: ' . $subscriptionId);
 
 			$this->unsetPeriod($subscriptionId);
 
@@ -124,8 +124,8 @@ class DbPeriodRepo implements PeriodRepo {
 			}
 			else
 			{
-				$query->where('sp.starts_at', '<=', $this->db->raw('now()'));
-				$query->where('sp.ends_at', '>=', $this->db->raw('now()'));
+				$query->where('sp.starts_at', '<=', $this->db->raw('date(now())'));
+				$query->where('sp.ends_at', '>=', $this->db->raw('date(now())'));
 			}
 
 			return $query->first();
@@ -151,8 +151,8 @@ class DbPeriodRepo implements PeriodRepo {
 			}
 			else
 			{
-				$query->where('sp.starts_at', '<=', $this->db->raw('now()'));
-				$query->where('sp.ends_at', '>=', $this->db->raw('now()'));
+				$query->where('sp.starts_at', '<=', $this->db->raw('date(now())'));
+				$query->where('sp.ends_at', '>=', $this->db->raw('date(now())'));
 			}
 
 			return $query->first();
