@@ -17,13 +17,13 @@ class ManualPeriod implements PeriodInterface {
 	{
 		if($this->start instanceof Carbon)
 		{
-			return $formatted ? 
-				$this->start->toFormattedDateString() 
+			return $formatted
+				? $this->start->toFormattedDateString() 
 				: $this->start->toDateString();
 		}
 
-		return $formatted ? 
-			Carbon::createFromFormat('Y-m-d', $this->start)->toFormattedDateString() 
+		return $formatted 
+			? Carbon::createFromFormat('Y-m-d', $this->start)->toFormattedDateString() 
 			: $this->start;
 	}
 
@@ -31,18 +31,13 @@ class ManualPeriod implements PeriodInterface {
 	{
 		if($this->end instanceof Carbon)
 		{
-			return $formatted ? 
-				$this->end->toFormattedDateString() 
+			return $formatted 
+				? $this->end->toFormattedDateString() 
 				: $this->end->toDateString();
 		}
 
-		return $formatted ? 
-			Carbon::createFromFormat('Y-m-d', $this->end)->toFormattedDateString() 
+		return $formatted 
+			? Carbon::createFromFormat('Y-m-d', $this->end)->toFormattedDateString() 
 			: $this->end;
-	}	
-
-	public function isNewPeriod()
-	{
-		return Carbon::yesterday()->toDateString() === $this->end();
 	}
 }

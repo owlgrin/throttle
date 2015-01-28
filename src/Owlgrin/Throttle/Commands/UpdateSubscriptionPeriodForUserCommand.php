@@ -4,6 +4,7 @@ use Illuminate\Console\Command;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputArgument;
 use Owlgrin\Throttle\Subscriber\SubscriberRepo;
+use Owlgrin\Throttle\Period\NextableInterface;
 use Throttle;
 use Carbon\Carbon, Config, App;
 
@@ -54,13 +55,9 @@ class UpdateSubscriptionPeriodForUserCommand extends Command {
 		
 		foreach($users as $index => $user) 
 		{			
-			if($this->isRequiredToUpdatePeriod($user))
+			if( ! $this->isRequiredToUpdatePeriod($user))
 			{
-				$this->period = App::make(Config::get('throttle::period_class'), ['user' => $user]);			
-				
-				$this->info('Updating user with ID ' . $user . ' subscription period to ' . $this->period->start(true) . ' - ' . $this->period->end(true));
-
-				Throttle::addPeriod($this->period);
+				$this->updateSubscriptionPeriod($user);
 			}
 		}
 
@@ -75,6 +72,21 @@ class UpdateSubscriptionPeriodForUserCommand extends Command {
 		}
 
 		return $this->subscriptionRepo->getAllUserIds();
+	}
+
+	protected function updateSubscriptionPeriod($user)
+	{
+		$this->period = App::make(Config::get('throttle::period_class'), ['user' => $user])->next();
+				
+		if( ! $this->period instanceOf NextableInterface)
+		{
+			$this->error('Period must be an instance of NextableInterface');
+			return;
+		}
+		
+		$this->info('Updating user with ID ' . $user . ' subscription period to ' . $this->period->start(true) . ' - ' . $this->period->end(true));
+		
+		Throttle::addPeriod($this->period);
 	}
 
 	protected function isRequiredToUpdatePeriod($user)
