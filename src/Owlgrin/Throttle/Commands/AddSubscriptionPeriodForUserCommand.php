@@ -4,27 +4,29 @@ use Illuminate\Console\Command;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputArgument;
 use Owlgrin\Throttle\Subscriber\SubscriberRepo;
+use Owlgrin\Throttle\Period\PeriodInterface;
+use Owlgrin\Throttle\Period\ManualPeriod;
 use Throttle;
 use Carbon\Carbon, Config, App;
 
 /**
  * Command to generate the required migration
  */
-class UpdateSubscriptionPeriodForUserCommand extends Command {
+class AddSubscriptionPeriodForUserCommand extends Command {
 
 	/**
 	 * The console command name.
 	 *
 	 * @var string
 	 */
-	protected $name = 'throttle:update-subscription-period';
+	protected $name = 'throttle:add-subscription-period';
 
 	/**
 	 * The console command description.
 	 *
 	 * @var string
 	 */
-	protected $description = 'Update the subscription period of active users subscription';
+	protected $description = 'Add new subscription period for active users subscription';
 
 	/**
 	 * Execute the console command.
@@ -53,14 +55,12 @@ class UpdateSubscriptionPeriodForUserCommand extends Command {
 		$users = $this->getUsers();
 		
 		foreach($users as $index => $user) 
-		{			
-			if($this->isRequiredToUpdatePeriod($user))
-			{
-				$this->period = App::make(Config::get('throttle::period_class'), ['user' => $user]);			
-				
-				$this->info('Updating user with ID ' . $user . ' subscription period to ' . $this->period->start(true) . ' - ' . $this->period->end(true));
+		{	
+			Throttle::user($user);
 
-				Throttle::addPeriod($this->period);
+			if($this->isRequiredToUpdatePeriod(Throttle::getPeriod()))
+			{
+				$this->updateSubscriptionPeriod($user, Throttle::getPeriod());
 			}
 		}
 
@@ -77,9 +77,31 @@ class UpdateSubscriptionPeriodForUserCommand extends Command {
 		return $this->subscriptionRepo->getAllUserIds();
 	}
 
-	protected function isRequiredToUpdatePeriod($user)
-	{		
-		$periodEnd = Carbon::createFromFormat('Y-m-d', Throttle::user($user)->getPeriod()->end())->endOfDay();
+	protected function updateSubscriptionPeriod($user, $period)
+	{	
+		if( ! $period instanceOf PeriodInterface)
+		{
+			$this->error('Period must be an instance of PeriodInterface');
+			return;
+		}
+
+		$start = Carbon::createFromFormat('Y-m-d', $period->end())->addDay()->toDateString();
+		$end = get_period_end($start)->toDateString();
+
+		$this->info('Updating user with ID ' . $user . ' subscription period to ' . $start . ' - ' . $end);
+		
+		Throttle::addPeriod(new ManualPeriod($start, $end));
+	}
+
+	protected function isRequiredToUpdatePeriod($period)
+	{
+		if( ! $period instanceOf PeriodInterface)
+		{
+			$this->error('Period must be an instance of PeriodInterface');
+			return;
+		}
+
+		$periodEnd = Carbon::createFromFormat('Y-m-d', $period->end())->endOfDay();
 		$today = Carbon::today()->endOfDay();
 		
 		if($periodEnd->lte($today)) return true;

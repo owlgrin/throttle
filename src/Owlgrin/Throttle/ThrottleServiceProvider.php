@@ -19,6 +19,8 @@ class ThrottleServiceProvider extends ServiceProvider {
 	public function boot()
 	{
 		$this->package('owlgrin/throttle');
+
+		require __DIR__.'/helpers.php';
 	}
 
 	/**
@@ -79,14 +81,9 @@ class ThrottleServiceProvider extends ServiceProvider {
 			return $app->make('Owlgrin\Throttle\Commands\SeedDailyBaseUsageCommand');
 		});
 
-		$this->app->bindShared('command.update.subscription.period', function($app)
+		$this->app->bindShared('command.add.subscription.period', function($app)
 		{
-			return $app->make('Owlgrin\Throttle\Commands\UpdateSubscriptionPeriodForUserCommand');
-		});
-
-		$this->app->bindShared('command.update.subscription.period.by.user', function($app)
-		{
-			return $app->make('Owlgrin\Throttle\Commands\UpdateSubscriptionPeriodByUserCommand');
+			return $app->make('Owlgrin\Throttle\Commands\AddSubscriptionPeriodForUserCommand');
 		});
 
 		$this->app->bindShared('command.user.unsubscribe', function($app)
@@ -111,8 +108,7 @@ class ThrottleServiceProvider extends ServiceProvider {
 		$this->commands('command.plan.list');
 		$this->commands('command.feature.list');
 		$this->commands('command.seed.daily.usage');
-		$this->commands('command.update.subscription.period');
-		$this->commands('command.update.subscription.period.by.user');
+		$this->commands('command.add.subscription.period');
 		$this->commands('command.user.unsubscribe');
 		$this->commands('command.user.usage');
 		$this->commands('command.user.limit.increment');

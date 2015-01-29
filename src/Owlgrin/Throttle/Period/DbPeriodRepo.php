@@ -82,6 +82,7 @@ class DbPeriodRepo implements PeriodRepo {
 			$period = $this->db->table(Config::get('throttle::tables.subscription_period'). ' AS sp')
 				->where('sp.subscription_id', $subscriptionId)
 				->where('sp.is_active', 1)
+				->select('sp.starts_at', 'sp.ends_at')
 				->first();
 
 			return $period;
@@ -100,6 +101,7 @@ class DbPeriodRepo implements PeriodRepo {
 				->join(Config::get('throttle::tables.subscriptions').' AS s', 's.id', '=', 'sp.subscription_id')
 				->where('s.user_id', $userId)
 				->where('sp.is_active', 1)
+				->select('sp.starts_at', 'sp.ends_at')
 				->first();
 			
 			return $period;
@@ -115,7 +117,8 @@ class DbPeriodRepo implements PeriodRepo {
 		try
 		{
 			$query = $this->db->table(Config::get('throttle::tables.subscription_period'). ' AS sp')
-				->where('sp.subscription_id', $subscriptionId);
+				->where('sp.subscription_id', $subscriptionId)
+				->select('sp.starts_at', 'sp.ends_at');
 
 			if( ! is_null($date))
 			{
@@ -142,7 +145,8 @@ class DbPeriodRepo implements PeriodRepo {
 		{
 			$query = $this->db->table(Config::get('throttle::tables.subscription_period').' AS sp')
 				->join(Config::get('throttle::tables.subscriptions').' AS s', 's.id', '=', 'sp.subscription_id')
-				->where('s.user_id', $userId);
+				->where('s.user_id', $userId)
+				->select('sp.starts_at', 'sp.ends_at');
 
 			if( ! is_null($date))
 			{

@@ -93,9 +93,11 @@ class DbSubscriberRepo implements SubscriberRepo {
 				//seeding base usages of features
 				$this->usageRepo->seedBase($userId, [$this->subscription($userId)]);
 				
-				//adding subscription period
-				$period = App::make(Config::get('throttle::period_class'), ['user' => $userId]);
-				$this->periodRepo->store($subscriptionId, $period->start(), $period->end());
+				//adding subscription period				
+				$start = Carbon::today()->toDateString();
+				$end = get_period_end($start)->toDateString();
+
+				$this->periodRepo->store($subscriptionId, $start, $end);
 			}
 					
 			//commition the work after processing
