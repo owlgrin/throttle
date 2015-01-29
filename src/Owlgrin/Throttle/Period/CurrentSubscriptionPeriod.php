@@ -40,13 +40,25 @@ class CurrentSubscriptionPeriod implements PeriodInterface, PeriodByUserInterfac
 
 	public function next()
 	{
-		$new = new static($this->user);
-		$nextStart = Carbon::createFromFormat('Y-m-d', $this->period['ends_at'])->addDays(1);
-		$nextEnd = $nextStart->copy()->endOfMonth();
+		list($nextStart, $nextEnd) = $this->calculateNextPeriod();
 
+		$new = new static($this->user);
 		$new->setStart($nextStart->toDateString());
 		$new->setEnd($nextEnd->toDateString());
-
 		return $new;
+	}
+
+	private function calculateNextPeriod($monthGap = 1)
+	{
+		$nextStart = Carbon::createFromFormat('Y-m-d', $this->end())->addDay();
+		
+		$nextEnd = $nextStart->copy()->addMonth();
+		if($nextEnd->month - $nextStart->month > $monthGap)
+		{
+			$nextEnd = $nextEnd->subMonths($nextEnd->month - $nextStart->month - $monthGap)->endOfMonth();
+		}
+		$nextEnd->subDay();
+
+		return [$nextStart, $nextEnd];
 	}
 }
