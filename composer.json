@@ -1,10 +1,19 @@
 {
     "name": "owlgrin/throttle",
-    "description": "",
+    "description": "Rate Limiter and Usage tracker",
+    "license": "MIT",
     "authors": [
         {
             "name": "Sahil Sarpal",
             "email": "sahilsarpal@gmail.com"
+        },
+        {
+            "name": "Mohit Mamoria",
+            "email": "mohit.mamoria@gmail.com"
+        },
+        {
+            "name": "Mayank Thapliyal",
+            "email": "mayankthapliyal99@gmail.com"
         }
     ],
     "require": {
@@ -12,9 +21,6 @@
         "illuminate/support": "4.2.*"
     },
     "autoload": {
-        "classmap": [
-            "src/migrations"
-        ],
         "psr-0": {
             "Owlgrin\\Throttle\\": "src/"
         }

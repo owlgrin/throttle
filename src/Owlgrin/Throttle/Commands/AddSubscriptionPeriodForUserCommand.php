@@ -5,6 +5,7 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputArgument;
 use Owlgrin\Throttle\Subscriber\SubscriberRepo;
 use Owlgrin\Throttle\Period\PeriodInterface;
+use Owlgrin\Throttle\Period\NextableInterface;
 use Owlgrin\Throttle\Period\ManualPeriod;
 use Throttle;
 use Carbon\Carbon, Config, App;
@@ -77,30 +78,24 @@ class AddSubscriptionPeriodForUserCommand extends Command {
 		return $this->subscriptionRepo->getAllUserIds();
 	}
 
-	protected function updateSubscriptionPeriod($user, $period)
-	{	
-		if( ! $period instanceOf PeriodInterface)
+	protected function updateSubscriptionPeriod($user, NextableInterface $period)
+	{
+		// get next period
+		$next = $period->next();
+
+		// next period should be an instance of PeriodInterface
+		if( ! $next instanceof PeriodInterface)
 		{
-			$this->error('Period must be an instance of PeriodInterface');
-			return;
+			$this->error('Next period is not an instance of PeriodInterface');
+			throw new \Exception('Next period is not an instance of PeriodInterface');
 		}
 
-		$start = Carbon::createFromFormat('Y-m-d', $period->end())->addDay()->toDateString();
-		$end = get_period_end($start)->toDateString();
-
-		$this->info('Updating user with ID ' . $user . ' subscription period to ' . $start . ' - ' . $end);
-		
-		Throttle::addPeriod(new ManualPeriod($start, $end));
+		$this->info('Updating user with ID ' . $user . ' subscription period to ' . $next->start() . ' - ' . $next->end());
+		Throttle::addPeriod($next);
 	}
 
-	protected function isRequiredToUpdatePeriod($period)
+	protected function isRequiredToUpdatePeriod(PeriodInterface $period)
 	{
-		if( ! $period instanceOf PeriodInterface)
-		{
-			$this->error('Period must be an instance of PeriodInterface');
-			return;
-		}
-
 		$periodEnd = Carbon::createFromFormat('Y-m-d', $period->end())->endOfDay();
 		$today = Carbon::today()->endOfDay();
 		
