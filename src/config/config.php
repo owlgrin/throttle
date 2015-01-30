@@ -27,12 +27,12 @@ return array(
 		 * This table keeps the record of usage made by the user
 		 * of a particular feature
 		 */
-		'user_feature_usage' => '_throttle_user_feature_usage',
+		'subscription_feature_usage' => '_throttle_subscription_feature_usage',
 		/**
 		 * This table stores limit made by the user
 		 * of a particular feature
 		 */
-		'user_feature_limit' => '_throttle_user_feature_limit',
+		'subscription_feature_limit' => '_throttle_subscription_feature_limit',
 		/**
 		 * This table stores period used by the user
 		 */
@@ -49,7 +49,7 @@ return array(
 	 * which will be used while seeding daily base usage of features.
 	 */
 	'seeders' => array(
-		'feature-identifier' => 'Seeder-class-path'
+		'feature-identifier' => 'seeder-class-path'
 	)
 
 );

@@ -59,11 +59,26 @@ class PayAsYouGoBiller implements Biller{
 			$lineItem = $this->calculateByTiers($tiers, $feature['used_quantity']);
 		
 			$amount += $lineItem['amount'];
+			$lineItem['limit'] = $this->getFeatureLimit($tiers);
 			$lineItem['usage'] = (int) $feature['used_quantity'];
 			$lines[] = $lineItem;
 		}
 
 		return ['lines' => $lines, 'amount' => $amount];
+	}
+
+	private function getFeatureLimit($tiers)
+	{
+		$limit = 0;
+
+		foreach($tiers as $index => $tier)
+		{
+			if(is_null($tier['limit']))	return null;
+
+			$limit += $tier['limit'];
+		}
+
+		return $limit;
 	}
 
 	/**
