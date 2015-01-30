@@ -21,9 +21,9 @@ class DbUsageRepo implements UsageRepo {
 	}
 
 	public function seedBase($userId, $subscriptions, $date = null)
-	{	
+	{
 		$date =  is_null($date) ? Carbon::today()->toDateString() : $date;
-		
+
 		foreach($subscriptions as $subscription)
 		{
 			if( ! $subscription) continue;
@@ -64,7 +64,7 @@ class DbUsageRepo implements UsageRepo {
 		{
 			return app($seeder)->getUsageForDate($userId, $date);
 		}
-		
+
 		return 0;
 	}
 
@@ -73,7 +73,7 @@ class DbUsageRepo implements UsageRepo {
 		try
 		{
 			/*
-				insert ignore into _throttle_user_feature_usage (subscription_id, feature_id, used_quantity, date)
+				insert ignore into _throttle_subscription_feature_usage (subscription_id, feature_id, used_quantity, date)
 				values (1, 1, 0, '2014-12-20'), (1, 1, 0, '2014-12-20'), (1, 1, 0, '2014-12-20'), (1, 1, 0, '2014-12-20')
 			 */
 			$values = [];
@@ -83,7 +83,7 @@ class DbUsageRepo implements UsageRepo {
 			}
 
 			return $this->db->insert('
-					insert ignore into `'.Config::get('throttle::tables.user_feature_usage').'`
+					insert ignore into `'.Config::get('throttle::tables.subscription_feature_usage').'`
 					(`subscription_id`, `feature_id`, `used_quantity`, `date`)
 					values '.implode(',', $values)
 				);
