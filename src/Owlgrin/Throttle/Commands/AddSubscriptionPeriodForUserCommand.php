@@ -3,10 +3,13 @@
 use Illuminate\Console\Command;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputArgument;
+
 use Owlgrin\Throttle\Subscriber\SubscriberRepo;
 use Owlgrin\Throttle\Period\PeriodInterface;
 use Owlgrin\Throttle\Period\NextableInterface;
 use Owlgrin\Throttle\Period\ManualPeriod;
+use Owlgrin\Throttle\Exceptions;
+
 use Throttle;
 use Carbon\Carbon, Config, App;
 
@@ -80,18 +83,25 @@ class AddSubscriptionPeriodForUserCommand extends Command {
 
 	protected function updateSubscriptionPeriod($user, NextableInterface $period)
 	{
-		// get next period
-		$next = $period->next();
-
-		// next period should be an instance of PeriodInterface
-		if( ! $next instanceof PeriodInterface)
+		try
 		{
-			$this->error('Next period is not an instance of PeriodInterface');
-			throw new \Exception('Next period is not an instance of PeriodInterface');
-		}
+			// get next period
+			$next = $period->next();
 
-		$this->info('Updating user with ID ' . $user . ' subscription period to ' . $next->start() . ' - ' . $next->end());
-		Throttle::addPeriod($next);
+			// next period should be an instance of PeriodInterface
+			if( ! $next instanceof PeriodInterface)
+			{
+				$this->error('Next period is not an instance of PeriodInterface');
+				throw new \Exception('Next period is not an instance of PeriodInterface');
+			}
+
+			$this->info('Updating user with ID ' . $user . ' subscription period to ' . $next->start() . ' - ' . $next->end());
+			Throttle::addPeriod($next);
+		}
+		catch(Exceptions\InvalidInputException $e)
+		{
+			$this->info("Period is already there for user " .$user);
+		}
 	}
 
 	protected function isRequiredToUpdatePeriod(PeriodInterface $period)
