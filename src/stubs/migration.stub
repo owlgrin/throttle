@@ -44,7 +44,7 @@ class CreateThrottleTable extends Migration {
 			$table->tinyInteger('is_active');
 			$table->timestamp('subscribed_at')->nullable();
 		});
-		Schema::create('user_feature_usage', function(Blueprint $table)
+		Schema::create('subscription_feature_usage', function(Blueprint $table)
 		{
 			$table->increments('id');
 			$table->integer('subscription_id');
@@ -53,7 +53,7 @@ class CreateThrottleTable extends Migration {
 			$table->date('date');
 			$table->unique(array('subscription_id', 'feature_id', 'date'), 'unique_daily_feature_usage');
 		});
-		Schema::create('user_feature_limit', function(Blueprint $table)
+		Schema::create('subscription_feature_limit', function(Blueprint $table)
 		{
 			$table->increments('id');
 			$table->integer('subscription_id');
@@ -82,8 +82,8 @@ class CreateThrottleTable extends Migration {
 		Schema::drop('features');
 		Schema::drop('plan_feature');
 		Schema::drop('subscriptions');
-		Schema::drop('user_feature_usage');
-		Schema::drop('user_feature_limit');
+		Schema::drop('subscription_feature_usage');
+		Schema::drop('subscription_feature_limit');
 		Schema::drop('subscription_period');
 	}
 }

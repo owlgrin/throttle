@@ -9,7 +9,7 @@ return array(
 		 */
 		'plans' => '_throttle_plans',
 		/**
-		 * This table is required to store all the features 
+		 * This table is required to store all the features
 		 * of our product
 		 */
 		'features' => '_throttle_features',
@@ -19,7 +19,7 @@ return array(
 		 */
 		'plan_feature' => '_throttle_plan_feature',
 		/**
-		 * This table is required to store subscriptions of the  
+		 * This table is required to store subscriptions of the
 		 * users with a particular plan
 		 */
 		'subscriptions' => '_throttle_subscriptions',
@@ -43,7 +43,7 @@ return array(
 	 * Set the default throttle plan.
 	 */
 	'plan' => 'your-plan-identifier',
-	
+
 	/**
 	 * Define feature indetifier and its seeder class path
 	 * which will be used while seeding daily base usage of features.
