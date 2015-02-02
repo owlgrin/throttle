@@ -9,7 +9,6 @@ use Owlgrin\Throttle\Feature\FeatureRepo;
 use Owlgrin\Throttle\Period\PeriodInterface;
 use Owlgrin\Throttle\Usage\UsageRepo;
 use Owlgrin\Throttle\Period\PeriodRepo;
-use Owlgrin\Throttle\Period\CurrentMonthPeriod;
 
 use Owlgrin\Throttle\Exceptions;
 use PDOException, Config;
@@ -373,6 +372,58 @@ class DbSubscriberRepo implements SubscriberRepo {
 		catch(PDOException $e)
 		{
 			throw new Exceptions\InternalException;
+		}
+	}
+
+	public function switchPlan($userId, $planIdentifier)
+	{	
+		try
+		{
+			//starting a transition
+			$this->db->beginTransaction();
+
+			//unsubscribing to previous plan.
+			$this->db->table(Config::get('throttle::tables.subscriptions'))
+				->where('user_id', $userId)
+				->where('is_active', '1')
+				->update(['is_active' => '0']);
+
+			//getting previous plan
+			$plan = $this->planRepo->getPlanByIdentifier($planIdentifier);
+
+			//user is subscribed in subscriptions and id is returned
+			$subscriptionId = $this->db->table(Config::get('throttle::tables.subscriptions'))->insertGetId([
+					'user_id' 		=> $userId,
+					'plan_id' 		=> $plan['id'],
+					'is_active'		=> '1',
+					'subscribed_at' => $this->db->raw('now()'),
+			]);
+			
+			if($subscriptionId)
+			{
+				//seeding limit of of features
+				$this->addInitialLimitForFeatures($subscriptionId, $plan['id']);
+				
+				//seeding base usages of features
+				$this->usageRepo->seedBase($userId, [$this->subscription($userId)]);
+				
+				//adding current subscription period of user as new period
+				$period = $this->periodRepo->getCurrentPeriodByUser($userId);
+
+				$this->periodRepo->store($subscriptionId, $period['starts_at'], $period['ends_at']);
+			}
+					
+			//commition the work after processing
+			$this->db->commit();
+		
+			return $subscriptionId;
+		}
+		catch(PDOException $e)
+		{
+			//rollback if failed
+			$this->db->rollback();
+
+			throw new Exceptions\InternalException;	
 		}
 	}
 }
