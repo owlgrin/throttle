@@ -8,9 +8,9 @@
 function get_period_end($start)
 {
 	$monthGap = 1;
-	
+
 	$start = Carbon\Carbon::createFromFormat('Y-m-d', $start);
-	
+
 	$end = $start->copy()->addMonth();
 
 	if($end->month - $start->month > $monthGap)
