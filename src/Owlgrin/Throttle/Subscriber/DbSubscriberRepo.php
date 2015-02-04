@@ -375,45 +375,49 @@ class DbSubscriberRepo implements SubscriberRepo {
 		}
 	}
 
-	public function switchPlan($userId, $planIdentifier)
+	public function switchPlan($subscriptionId, $planIdentifier)
 	{	
 		try
 		{
 			//starting a transition
 			$this->db->beginTransaction();
 
-			//unsubscribing to previous plan.
-			$this->db->table(Config::get('throttle::tables.subscriptions'))
-				->where('user_id', $userId)
-				->where('is_active', '1')
-				->update(['is_active' => '0']);
-
-			//getting previous plan
 			$plan = $this->planRepo->getPlanByIdentifier($planIdentifier);
 
-			//user is subscribed in subscriptions and id is returned
-			$subscriptionId = $this->db->table(Config::get('throttle::tables.subscriptions'))->insertGetId([
-					'user_id' 		=> $userId,
-					'plan_id' 		=> $plan['id'],
-					'is_active'		=> '1',
-					'subscribed_at' => $this->db->raw('now()'),
-			]);
-			
-			if($subscriptionId)
-			{
-				//seeding limit of of features
-				$this->addInitialLimitForFeatures($subscriptionId, $plan['id']);
-				
-				//seeding base usages of features
-				$this->usageRepo->seedBase($userId, [$this->subscription($userId)]);
-				
-				//adding current subscription period of user as new period
-				$period = $this->periodRepo->getCurrentPeriodByUser($userId);
+			//switching user to respect plan.
+			$this->db->table(Config::get('throttle::tables.subscriptions'))
+				->where('id', $subscriptionId)
+				->where('is_active', '1')
+				->update(array(
+					'plan_id' => $plan['id'],
+					'subscribed_at' => $this->db->raw('now()')
+				));
 
-				$this->periodRepo->store($subscriptionId, $period['starts_at'], $period['ends_at']);
-			}
-					
-			//commition the work after processing
+			//updating subscription's features limit respective to the plan it is switching.
+			$this->db->update('
+					Update '. 
+						Config::get('throttle::tables.subscription_feature_limit'). ' as `sfl`, 
+						( select 
+							`feature_id`, IF(`limit` IS NULL, NULL, SUM(`limit`)) as `limit` 
+								from 
+									(select 
+										`feature_id`, `limit` 
+										from '. 
+											Config::get('throttle::tables.plan_feature') . ' 
+										where 
+											`plan_id` = :planId order by `tier` desc) as `t2` 
+										group by `feature_id`) as `t1` 
+						set 
+							`sfl`.`limit` = `t1`.`limit` 
+						where 
+							`sfl`.`feature_id` = `t1`.`feature_id` and 
+							`sfl`.`subscription_id` = :subscriptionId', 
+				[
+					':planId' => $plan['id'],
+					':subscriptionId' => $subscriptionId
+				]);
+
+			//committing the work after processing
 			$this->db->commit();
 		
 			return $subscriptionId;
