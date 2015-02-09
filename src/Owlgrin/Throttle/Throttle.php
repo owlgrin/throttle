@@ -36,7 +36,7 @@ class Throttle {
 	public function user($user)
 	{
 		$this->user = $user;
-		
+
 		$this->subscription = $this->subscriber->subscription($this->user);
 		if(! $this->subscription)
 			throw new Exceptions\NoSubscriptionException;
@@ -132,14 +132,14 @@ class Throttle {
 	public function consume($identifier, $quantity = 1)
 	{
 		if(is_null(array_get($this->attempts, $identifier))) return;
-		
+
 		$this->attempts[$identifier] -= $quantity;
 	}
 
 	public function softAttempt($identifier, $count = 1)
 	{
 		if(is_null(array_get($this->features, $identifier))) return;
-		
+
 		if(is_null($this->subscription))
 			throw new Exceptions\NoSubscriptionException;
 
@@ -166,7 +166,7 @@ class Throttle {
 	public function hit($identifier, $quantity = 1)
 	{
 		if(is_null(array_get($this->features, $identifier))) return;
-		
+
 		if(is_null($this->subscription))
 			throw new Exceptions\NoSubscriptionException;
 
