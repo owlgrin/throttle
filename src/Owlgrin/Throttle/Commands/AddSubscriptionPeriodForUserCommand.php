@@ -83,24 +83,25 @@ class AddSubscriptionPeriodForUserCommand extends Command {
 
 	protected function updateSubscriptionPeriod($user, NextableInterface $period)
 	{
+		// get next period
+		$next = $period->next();
+
+		// next period should be an instance of PeriodInterface
+		if( ! $next instanceof PeriodInterface)
+		{
+			$this->error('Next period is not an instance of PeriodInterface');
+			throw new \Exception('Next period is not an instance of PeriodInterface');
+		}
+
+		$this->info('Updating user with ID ' . $user . ' subscription period to ' . $next->start() . ' - ' . $next->end());
+		
 		try
 		{
-			// get next period
-			$next = $period->next();
-
-			// next period should be an instance of PeriodInterface
-			if( ! $next instanceof PeriodInterface)
-			{
-				$this->error('Next period is not an instance of PeriodInterface');
-				throw new \Exception('Next period is not an instance of PeriodInterface');
-			}
-
-			$this->info('Updating user with ID ' . $user . ' subscription period to ' . $next->start() . ' - ' . $next->end());
 			Throttle::addPeriod($next);
 		}
 		catch(Exceptions\InvalidInputException $e)
 		{
-			$this->info("Period is already there for user " .$user);
+			$this->info("Period is already added for user " .$user);
 		}
 	}
 
