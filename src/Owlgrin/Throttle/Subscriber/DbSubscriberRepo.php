@@ -9,7 +9,6 @@ use Owlgrin\Throttle\Feature\FeatureRepo;
 use Owlgrin\Throttle\Period\PeriodInterface;
 use Owlgrin\Throttle\Usage\UsageRepo;
 use Owlgrin\Throttle\Period\PeriodRepo;
-use Owlgrin\Throttle\Period\CurrentMonthPeriod;
 
 use Owlgrin\Throttle\Exceptions;
 use PDOException, Config;
@@ -373,6 +372,62 @@ class DbSubscriberRepo implements SubscriberRepo {
 		catch(PDOException $e)
 		{
 			throw new Exceptions\InternalException;
+		}
+	}
+
+	public function switchPlan($subscriptionId, $planIdentifier)
+	{	
+		try
+		{
+			//starting a transition
+			$this->db->beginTransaction();
+
+			$plan = $this->planRepo->getPlanByIdentifier($planIdentifier);
+
+			//switching user to respect plan.
+			$this->db->table(Config::get('throttle::tables.subscriptions'))
+				->where('id', $subscriptionId)
+				->where('is_active', '1')
+				->update(array(
+					'plan_id' => $plan['id'],
+					'subscribed_at' => $this->db->raw('now()')
+				));
+
+			//updating subscription's features limit respective to the plan it is switching.
+			$this->db->update('
+					Update '. 
+						Config::get('throttle::tables.subscription_feature_limit'). ' as `sfl`, 
+						( select 
+							`feature_id`, IF(`limit` IS NULL, NULL, SUM(`limit`)) as `limit` 
+								from 
+									(select 
+										`feature_id`, `limit` 
+										from '. 
+											Config::get('throttle::tables.plan_feature') . ' 
+										where 
+											`plan_id` = :planId order by `tier` desc) as `t2` 
+										group by `feature_id`) as `t1` 
+						set 
+							`sfl`.`limit` = `t1`.`limit` 
+						where 
+							`sfl`.`feature_id` = `t1`.`feature_id` and 
+							`sfl`.`subscription_id` = :subscriptionId', 
+				[
+					':planId' => $plan['id'],
+					':subscriptionId' => $subscriptionId
+				]);
+
+			//committing the work after processing
+			$this->db->commit();
+		
+			return $subscriptionId;
+		}
+		catch(PDOException $e)
+		{
+			//rollback if failed
+			$this->db->rollback();
+
+			throw new Exceptions\InternalException;	
 		}
 	}
 }
