@@ -198,7 +198,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 				->join(Config::get('throttle::tables.subscriptions').' AS s', 's.id', '=', 'ufl.subscription_id')
 				->where('s.id', $subscriptionId)
 				->where('f.identifier', $featureIdentifier)
-				->where('ufl.status', 'current')
+				->where('ufl.status', 'active')
 				->increment('ufl.limit', $value);
 		}
 		catch(PDOException $e)
@@ -239,7 +239,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 					':start_date' => $startDate,
 					':end_date' => $endDate,
 					':subscription_id' => $subscriptionId,
-					':status' => 'current'
+					':status' => 'active'
 				]);
 		}
 		catch(PDOException $e)
@@ -277,7 +277,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 				->where('ufu.subscription_id', $subscriptionId)
 				->where('f.identifier', $identifier)
 				->where('ufu.date', $today)
-				->where('ufu.status', 'current')
+				->where('ufu.status', 'active')
 				->increment('ufu.used_quantity', $count);
 
 			//count should not be equal to zero
@@ -347,8 +347,8 @@ class DbSubscriberRepo implements SubscriberRepo {
 				':end_date' => $end,
 				':identifier' => $identifier,
 				':subscriptionId' => $subscriptionId,
-				':usageStatus' => 'current',
-				':limitStatus' => 'current'
+				':usageStatus' => 'active',
+				':limitStatus' => 'active'
 			]);
 
 
@@ -418,7 +418,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 			[
 				':planId' => $planId,
 				':subscriptionId' => $subscriptionId,
-				':status' => 'current'
+				':status' => 'active'
 			]);
 		}
 		catch(PDOException $e)
@@ -434,8 +434,8 @@ class DbSubscriberRepo implements SubscriberRepo {
 			$this->db->table(Config::get('throttle::tables.subscription_feature_usage'))
 				->where('feature_id', $featureId)
 				->where('subscription_id', $subscriptionId)
-				->where('status', 'current')
-				->update(['status' => 'deleted']);
+				->where('status', 'active')
+				->update(['status' => 'inactive-by-plan-update']);
 		}
 		catch(PDOException $e)
 		{
@@ -450,8 +450,8 @@ class DbSubscriberRepo implements SubscriberRepo {
 			$this->db->table(Config::get('throttle::tables.subscription_feature_limit'))
 				->where('feature_id', $featureId)
 				->where('subscription_id', $subscriptionId)
-				->where('status', 'current')
-				->update(['status' => 'deleted']);
+				->where('status', 'active')
+				->update(['status' => 'inactive-by-plan-update']);
 		}
 		catch(PDOException $e)
 		{

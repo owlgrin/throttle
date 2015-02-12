@@ -51,7 +51,7 @@ class CreateThrottleTable extends Migration {
 			$table->integer('feature_id');
 			$table->integer('used_quantity');
 			$table->date('date');
-			$table->enum('status', array('current', 'deleted'))->default('current');
+			$table->enum('status', array('active', 'inactive-by-plan-switch', 'inactive-by-plan-update', 'inactive-by-plan-delete'))->default('active');
 			$table->unique(array('subscription_id', 'feature_id', 'date'), 'unique_daily_feature_usage');
 		});
 		Schema::create('subscription_feature_limit', function(Blueprint $table)
@@ -60,7 +60,7 @@ class CreateThrottleTable extends Migration {
 			$table->integer('subscription_id');
 			$table->integer('feature_id');
 			$table->integer('limit')->nullable();
-			$table->enum('status', array('current', 'deleted'))->default('current');
+			$table->enum('status', array('active', 'inactive-by-plan-switch', 'inactive-by-plan-update', 'inactive-by-plan-delete'))->default('active');
 		});
 
 		Schema::create('subscription_period', function(Blueprint $table)
