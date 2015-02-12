@@ -50,12 +50,12 @@ class UpdatePlanCommand extends Command {
 
 		$this->represntPlanInTable($plan);
 
-		// if($this->confirm('Do you wish to update plan to database ? [yes|no]'))
-		// {
-		// 	$plan = $this->updatePlan($plan);
+		if($this->confirm('Do you wish to update plan to database ? [yes|no]'))
+		{
+			$plan = $this->updatePlan($plan);
 
-		// 	$this->planRepo->updatePlan($plan);
-		// }
+			$this->planRepo->updatePlan($plan);
+		}
 
 		$this->representTiersInTable($tiers);
 

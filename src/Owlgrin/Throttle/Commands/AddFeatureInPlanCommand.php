@@ -42,8 +42,16 @@ class AddFeatureInPlanCommand extends Command {
 	{
 		$planIdentifier = $this->argument('plan');
 
+		$plan = $this->planRepo->getPlanByIdentifier($planIdentifier);
+
+		$tiers = $this->planRepo->getTiersByPlanIdentifier($planIdentifier);
+
+		$this->represntPlanInTable($plan);
+
+		$this->representPlanFeaturesInTable($tiers);
+
 		$oldFeatures = $this->planRepo->getFeaturesByPlanIdentifier($planIdentifier);
-		$oldFeatures = array_pick($features, 'identifier');
+		$oldFeatures = array_pick($oldFeatures, 'identifier');
 
 		do
 		{
@@ -116,6 +124,22 @@ class AddFeatureInPlanCommand extends Command {
 
 		$this->table(['rate', 'per_quantity', 'limit'], $tiers);
 	}
+
+
+	protected function represntPlanInTable($plan)
+	{
+		$this->info('Representing plan of identifier : "'. $plan['identifier'] .'"');
+
+		$this->table(['id', 'name', 'identifier', 'description'], [$plan]);
+	}
+
+	protected function representPlanFeaturesInTable($tiers)
+	{
+		$this->info('Representing plan Features');
+
+		$this->table([ 'plan_id', 'feature_id', 'rate', 'per_quantity', 'tier', 'limit', 'identifier' ], $tiers);
+	}
+
 
 	protected function getArguments()
 	{

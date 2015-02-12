@@ -435,7 +435,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 				->where('feature_id', $featureId)
 				->where('subscription_id', $subscriptionId)
 				->where('status', 'current')
-				->update(['status', 'deleted']);
+				->update(['status' => 'deleted']);
 		}
 		catch(PDOException $e)
 		{
@@ -451,7 +451,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 				->where('feature_id', $featureId)
 				->where('subscription_id', $subscriptionId)
 				->where('status', 'current')
-				->update(['status', 'deleted']);
+				->update(['status' => 'deleted']);
 		}
 		catch(PDOException $e)
 		{

@@ -42,6 +42,8 @@ class RemoveFeatureFromPlanCommand extends Command {
 
 	public function fire()
 	{
+		$featureIds = [];
+
 		$planIdentifier = $this->argument('plan');
 
 		$plan = $this->planRepo->getPlanByIdentifier($planIdentifier);
