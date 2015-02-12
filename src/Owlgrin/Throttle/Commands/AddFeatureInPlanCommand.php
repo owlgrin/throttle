@@ -5,7 +5,8 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputArgument;
 
 use Owlgrin\Throttle\Plan\PlanRepo;
-
+use Owlgrin\Throttle\Subscriber\SubscriberRepo;
+use Owlgrin\Throttle\Usage\UsageRepo;
 /**
  * Command to generate the required migration
  */
@@ -31,15 +32,21 @@ class AddFeatureInPlanCommand extends Command {
 	 * @return void
 	 */
 	protected $planRepo;
+	protected $subscriberRepo;
+	protected $usageRepo;
 
-	public function __construct(PlanRepo $planRepo)
+	public function __construct(PlanRepo $planRepo, SubscriberRepo $subscriberRepo, UsageRepo $usageRepo)
 	{
  		parent::__construct();
  		$this->planRepo = $planRepo;
+ 		$this->subscriberRepo = $subscriberRepo;
+ 		$this->usageRepo = $usageRepo;
 	}
 
 	public function fire()
 	{
+		$newFeatures = [];
+
 		$planIdentifier = $this->argument('plan');
 
 		$plan = $this->planRepo->getPlanByIdentifier($planIdentifier);
@@ -55,25 +62,34 @@ class AddFeatureInPlanCommand extends Command {
 
 		do
 		{
-			$newFeatures[] = $this->addFeatures($oldFeatures);
+			$newFeatures[] = $this->addFeatures($oldFeatures, $plan['id']);
 
 		} while($this->confirm('Do you wish to add more features ? [yes|no]'));
 
 		$this->representFeaturesInTable($newFeatures);
 
-		$this->addPlanToDatabase($planIdentifier, $newFeatures);
-	}
-
-	public function addPlanToDatabase($planIdentifier, $features)
-	{
-		if ($this->confirm('Do you wish to add features to the plan ? [yes|no]'))
+		if( count($newFeatures) > 0)
 		{
-			$this->planRepo->addFeaturesInPlan($planIdentifier, $features);
-			$this->info('Features Added Successfully');
+			$this->updateSubscribersForUpdatedPlan($plan['id'], $newFeatures);
 		}
 	}
 
-	protected function addFeatures($oldFeatures)
+	protected function updateSubscribersForUpdatedPlan($planId, $features)
+	{
+		$subscribers = $this->subscriberRepo->findSubscribersByPlanId($planId);
+
+		foreach ($subscribers as $subscriber)
+		{
+			foreach ($features as $feature)
+			{
+				$this->subscriberRepo->addInitialLimitForNewFeature($subscriber['id'], $planId, $feature['id']);
+				$this->usageRepo->addInitialUsagesForFeature($subscriber, $feature['id'], $feature);
+			}
+		}
+	}
+
+
+	protected function addFeatures($oldFeatures, $planId)
 	{
 		$feature['name'] = $this->ask('Whats tha name Of The feature ?');
 
@@ -93,6 +109,13 @@ class AddFeatureInPlanCommand extends Command {
 			$feature['tier'][] = $this->addTiersInFeature();
 
 		} while($this->confirm('Do you want to add more tiers? [yes|no]'));
+
+		$feature['id'] = $this->planRepo->addFeature($feature['name'], $feature['identifier'], array_get($feature, 'aggregator', 'sum'));
+
+		foreach($feature['tier'] as $index => $tier)
+		{
+			$this->planRepo->addPlanFeature($planId, $feature['id'], $tier['rate'], $tier['per_quantity'], $index, $tier['limit']);
+		}
 
 		return $feature;
 	}

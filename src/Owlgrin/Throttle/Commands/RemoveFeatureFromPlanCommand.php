@@ -32,6 +32,7 @@ class RemoveFeatureFromPlanCommand extends Command {
 	 * @return void
 	 */
 	protected $planRepo;
+	protected $subscriberRepo;
 
 	public function __construct(PlanRepo $planRepo, SubscriberRepo $subscriberRepo)
 	{
@@ -61,7 +62,7 @@ class RemoveFeatureFromPlanCommand extends Command {
 			$featureIds[] = $this->planRepo->removeFeatureFromPlan($plan['id'], $featureIdentifier);
 		}
 
-		$subscribers = $this->planRepo->findSubscribersByPlanId($plan['id']);
+		$subscribers = $this->subscriberRepo->findSubscribersByPlanId($plan['id']);
 
 		foreach ($featureIds as $featureId)
 		{

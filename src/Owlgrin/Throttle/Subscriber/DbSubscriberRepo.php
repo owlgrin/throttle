@@ -458,4 +458,45 @@ class DbSubscriberRepo implements SubscriberRepo {
 			throw new Exceptions\InternalException;
 		}
 	}
+
+	public function addInitialLimitForNewFeature($subscriptionId, $planId, $featureId)
+	{
+		try
+		{
+
+			return $this->db->insert(
+				$this->db->raw("INSERT into
+				".Config::get('throttle::tables.subscription_feature_limit')."
+				(`subscription_id`, `feature_id`, `limit`)
+				SELECT :subscriptionId, `feature_id` as featureId,
+				IF(`limit` IS NULL, NULL, SUM(`limit`)) AS `limit` FROM
+				(SELECT `feature_id`, `limit` FROM
+				".Config::get('throttle::tables.plan_feature')."
+				WHERE `feature_id` = :featureId  AND `plan_id` = :planId ORDER BY `tier` DESC ) AS
+				`t1`"),
+				[ 'subscriptionId' => $subscriptionId, 'featureId' => $featureId, 'planId' => $planId ]);
+		}
+		catch(PDOException $e)
+		{
+			throw new Exceptions\InternalException;
+		}
+	}
+
+	public function findSubscribersByPlanId($planId)
+	{
+		try
+		{
+			return $this->db->table(Config::get('throttle::tables.subscriptions'))
+							->where('is_active', true)
+							->where('plan_id', $planId)
+							->select('id', 'user_id')
+							->get();
+		}
+		catch(PDOException $e)
+		{
+			throw new Exceptions\InternalException;
+		}
+	}
+
+
 }

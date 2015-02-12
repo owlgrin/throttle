@@ -111,7 +111,7 @@ class DbPlanRepo implements PlanRepo {
 		}
 	}
 
-	private function addPlanFeature($planId, $featureId, $rate, $perQuantity, $tier, $limit)
+	public function addPlanFeature($planId, $featureId, $rate, $perQuantity, $tier, $limit)
 	{
 		try
 		{
@@ -225,85 +225,6 @@ class DbPlanRepo implements PlanRepo {
 		}
 	}
 
-	public function addFeaturesInPlan($planIdentifier, $features)
-	{
-		try
-		{
-			//starting a transition
-			$this->db->beginTransaction();
-
-			$plan = $this->getPlanByIdentifier($planIdentifier);
-			$subscribers = $this->findSubscribersByPlanId($plan['id']);
-
-			//for every feature
-			//add new feature
-			//then add the plan_feature mapping
-			foreach($features as $feature)
-			{
-				$featureId = $this->addFeature($feature['name'], $feature['identifier'], array_get($feature, 'aggregator', 'sum'));
-
-				foreach($feature['tier'] as $index => $tier)
-				{
-					$this->addPlanFeature($plan['id'], $featureId, $tier['rate'], $tier['per_quantity'], $index, $tier['limit']);
-				}
-
-				foreach ($subscribers as $subscriber)
-				{
-					$this->addInitialLimitForFeatures($subscriber['id'], $plan['id'], $featureId);
-					$this->usageRepo->addInitialUsagesForFeature($subscriber, $featureId, $feature);
-				}
-			}
-
-			//commition the work after processing
-			$this->db->commit();
-		}
-		catch(PDOException $e)
-		{
-			//rollback if failed
-			$this->db->rollback();
-
-			throw new Exceptions\InternalException;
-		}
-	}
-
-	public function addInitialLimitForFeatures($subscriptionId, $planId, $featureId)
-	{
-		try
-		{
-
-			return $this->db->insert(
-				$this->db->raw("INSERT into
-				".Config::get('throttle::tables.subscription_feature_limit')."
-				(`subscription_id`, `feature_id`, `limit`)
-				SELECT :subscriptionId, `feature_id` as featureId,
-				IF(`limit` IS NULL, NULL, SUM(`limit`)) AS `limit` FROM
-				(SELECT `feature_id`, `limit` FROM
-				".Config::get('throttle::tables.plan_feature')."
-				WHERE `feature_id` = :featureId  AND `plan_id` = :planId ORDER BY `tier` DESC ) AS
-				`t1`"),
-				[ 'subscriptionId' => $subscriptionId, 'featureId' => $featureId, 'planId' => $planId ]);
-		}
-		catch(PDOException $e)
-		{
-			throw new Exceptions\InternalException;
-		}
-	}
-
-	public function findSubscribersByPlanId($planId)
-	{
-		try
-		{
-			return $this->db->table(Config::get('throttle::tables.subscriptions'))
-							->where('is_active', true)
-							->where('plan_id', $planId)
-							->select('id', 'user_id')
-							->get();
-		}
-		catch(PDOException $e)
-		{
-			throw new Exceptions\InternalException;
-		}
-	}
 
 	public function getTiersByPlanIdentifier($planIdentifier)
 	{

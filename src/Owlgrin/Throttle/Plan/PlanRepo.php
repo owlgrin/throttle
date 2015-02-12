@@ -14,4 +14,15 @@ interface PlanRepo {
 
 	public function getFeatureLimitByPlanIdentifier($planIdentifier);
 
+	public function getTiersByPlanIdentifier($planIdentifier);
+
+	public function getFeatureTiersByPlanIdentifier($planIdentifier, $featureIdentifier);
+
+	public function updatePlan($plan);
+
+	public function updateFeatureTiersOfPlan($planId, $featureIdentifier, $tiers);
+
+	public function removeFeatureFromPlan($planId, $featureIdentifier);
+
 }
+

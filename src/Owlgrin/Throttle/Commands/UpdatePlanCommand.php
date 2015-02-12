@@ -32,6 +32,7 @@ class UpdatePlanCommand extends Command {
 	 * @return void
 	 */
 	protected $planRepo;
+	protected $subscriberRepo;
 
 	public function __construct(PlanRepo $planRepo, SubscriberRepo $subscriberRepo)
 	{
@@ -75,7 +76,7 @@ class UpdatePlanCommand extends Command {
 
 	protected function updateSubscribersForUpdatedPlan($plan)
 	{
-		$subscribers = $this->planRepo->findSubscribersByPlanId($plan['id']);
+		$subscribers = $this->subscriberRepo->findSubscribersByPlanId($plan['id']);
 
 		foreach ($subscribers as $subscriber)
 		{
