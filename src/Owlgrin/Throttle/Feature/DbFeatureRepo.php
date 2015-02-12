@@ -22,7 +22,7 @@ class DbFeatureRepo implements FeatureRepo {
 		{
 			return $this->db->table(Config::get('throttle::tables.plan_feature').' as pf')
 				->join(Config::get('throttle::tables.features').' as f', 'f.id', '=', 'pf.feature_id')
-				->select('limit', 'rate', 'name', 'per_quantity')
+				->select('tier', 'limit', 'rate', 'name', 'per_quantity')
 				->where('plan_id', $planId)
 				->where('feature_id', $featureId)
 				->get();
