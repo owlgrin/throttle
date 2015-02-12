@@ -162,7 +162,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 		}
 	}
 
-	private function addInitialLimitForFeatures($subscriptionId, $planId)
+	public function addInitialLimitForFeatures($subscriptionId, $planId)
 	{
 		try
 		{
@@ -198,7 +198,8 @@ class DbSubscriberRepo implements SubscriberRepo {
 				->join(Config::get('throttle::tables.subscriptions').' AS s', 's.id', '=', 'ufl.subscription_id')
 				->where('s.id', $subscriptionId)
 				->where('f.identifier', $featureIdentifier)
-				->increment('limit', $value);
+				->where('ufl.status', 'current')
+				->increment('ufl.limit', $value);
 		}
 		catch(PDOException $e)
 		{
@@ -231,12 +232,14 @@ class DbSubscriberRepo implements SubscriberRepo {
 					where
 						`ufu`.`date` >= :start_date
 						and `ufu`.`date` <= :end_date
+						and `ufu`.`status` = :status
 						and `s`.`id` = :subscription_id
 					group by `f`.`id`
 				', [
 					':start_date' => $startDate,
 					':end_date' => $endDate,
-					':subscription_id' => $subscriptionId
+					':subscription_id' => $subscriptionId,
+					':status' => 'current'
 				]);
 		}
 		catch(PDOException $e)
@@ -274,6 +277,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 				->where('ufu.subscription_id', $subscriptionId)
 				->where('f.identifier', $identifier)
 				->where('ufu.date', $today)
+				->where('ufu.status', 'current')
 				->increment('ufu.used_quantity', $count);
 
 			//count should not be equal to zero
@@ -335,12 +339,16 @@ class DbSubscriberRepo implements SubscriberRepo {
 					and `ufu`.`date` <= :end_date
 					and `f`.`identifier` = :identifier
 					and `ufu`.`subscription_id` = :subscriptionId
+					and `ufu`.`status` = :usageStatus
+					and `ufl`.`status` = :limitStatus
 				LIMIT 1
 			', [
 				':start_date' => $start,
 				':end_date' => $end,
 				':identifier' => $identifier,
-				':subscriptionId' => $subscriptionId
+				':subscriptionId' => $subscriptionId,
+				':usageStatus' => 'current',
+				':limitStatus' => 'current'
 			]);
 
 
@@ -357,6 +365,13 @@ class DbSubscriberRepo implements SubscriberRepo {
 		}
 	}
 
+	/**
+	 * not in use
+	 * @param  [type] $subscriptionId [description]
+	 * @param  [type] $featureId      [description]
+	 * @param  [type] $limit          [description]
+	 * @return [type]                 [description]
+	 */
 	public function canReduceLimit($subscriptionId, $featureId, $limit)
 	{
 		try
@@ -369,6 +384,74 @@ class DbSubscriberRepo implements SubscriberRepo {
 			}
 
 			return false;
+		}
+		catch(PDOException $e)
+		{
+			throw new Exceptions\InternalException;
+		}
+	}
+
+	public function updateInitialLimitForFeatures($subscriptionId, $planId)
+	{
+		try
+		{
+			//updating subscription's features limit respective to the plan it is updated
+			$this->db->update('
+				Update '.
+					Config::get('throttle::tables.subscription_feature_limit'). ' as `sfl`,
+					( select
+						`feature_id`, IF(`limit` IS NULL, NULL, SUM(`limit`)) as `limit`
+							from
+								(select
+									`feature_id`, `limit`
+									from '.
+										Config::get('throttle::tables.plan_feature') . '
+									where
+										`plan_id` = :planId order by `tier` desc) as `t2`
+									group by `feature_id`) as `t1`
+					set
+						`sfl`.`limit` = `t1`.`limit`
+					where
+						`sfl`.`feature_id` = `t1`.`feature_id`
+						and `sfl`.`subscription_id` = :subscriptionId
+						and `sfl`.`status` = :status',
+			[
+				':planId' => $planId,
+				':subscriptionId' => $subscriptionId,
+				':status' => 'current'
+			]);
+		}
+		catch(PDOException $e)
+		{
+			throw new Exceptions\InternalException;
+		}
+	}
+
+	public function removeUsagesOfSubscription($subscriptionId, $featureId)
+	{
+		try
+		{
+			$this->db->table(Config::get('throttle::tables.subscription_feature_usage'))
+				->where('feature_id', $featureId)
+				->where('subscription_id', $subscriptionId)
+				->where('status', 'current')
+				->update(['status', 'deleted']);
+		}
+		catch(PDOException $e)
+		{
+			throw new Exceptions\InternalException;
+		}
+	}
+
+	public function removeLimitsOfSubscription($subscriptionId, $featureId)
+	{
+		try
+		{
+			$this->db->table(Config::get('throttle::tables.subscription_feature_limit'))
+				->where('feature_id', $featureId)
+				->where('subscription_id', $subscriptionId)
+				->where('status', 'current')
+				->update(['status', 'deleted']);
 		}
 		catch(PDOException $e)
 		{

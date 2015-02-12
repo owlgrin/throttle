@@ -3,12 +3,15 @@
 interface PlanRepo {
 
 	public function add($plan);
-	
+
 	public function getFeaturesByPlan($planId);
 
 	public function getPlanByIdentifier($identifier);
 
 	public function getAllPlans();
 
+	public function getFeaturesByPlanIdentifier($planIdentifier);
+
 	public function getFeatureLimitByPlanIdentifier($planIdentifier);
+
 }

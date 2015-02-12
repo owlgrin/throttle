@@ -101,6 +101,26 @@ class ThrottleServiceProvider extends ServiceProvider {
 			return $app->make('Owlgrin\Throttle\Commands\IncrementFeatureLimitOfUserCommand');
 		});
 
+		$this->app->bindShared('command.add.feature.in.plan', function($app)
+		{
+			return $app->make('Owlgrin\Throttle\Commands\AddFeatureInPlanCommand');
+		});
+
+		$this->app->bindShared('command.update.plan', function($app)
+		{
+			return $app->make('Owlgrin\Throttle\Commands\UpdatePlanCommand');
+		});
+
+		$this->app->bindShared('command.remove.feature.from.plan', function($app)
+		{
+			return $app->make('Owlgrin\Throttle\Commands\RemoveFeatureFromPlanCommand');
+		});
+
+		$this->app->bindShared('command.remove.tiers.of.feature.from.plan', function($app)
+		{
+			return $app->make('Owlgrin\Throttle\Commands\RemoveTiersOfPlanFeatureCommand');
+		});
+
 		$this->commands('command.throttle.table');
 		$this->commands('command.user.subscribe');
 		$this->commands('command.plan.entry');
@@ -112,6 +132,10 @@ class ThrottleServiceProvider extends ServiceProvider {
 		$this->commands('command.user.unsubscribe');
 		$this->commands('command.user.usage');
 		$this->commands('command.user.limit.increment');
+		$this->commands('command.add.feature.in.plan');
+		$this->commands('command.update.plan');
+		$this->commands('command.remove.feature.from.plan');
+		$this->commands('command.remove.tiers.of.feature.from.plan');
 	}
 
 	protected function registerRepositories()
