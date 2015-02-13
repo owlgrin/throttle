@@ -104,7 +104,7 @@ class ThrottleServiceProvider extends ServiceProvider {
 		$this->app->bindShared('command.switch.plan', function($app)
 		{
 			return $app->make('Owlgrin\Throttle\Commands\SwitchPlanCommand');
-		}
+		});
 
 		$this->app->bindShared('command.add.feature.in.plan', function($app)
 		{
