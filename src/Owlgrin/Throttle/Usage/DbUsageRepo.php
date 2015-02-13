@@ -93,4 +93,23 @@ class DbUsageRepo implements UsageRepo {
 			throw new Exceptions\InternalException;
 		}
 	}
+
+	public function addInitialUsagesForFeature($subscription, $featureId, $feature, $date = null)
+	{
+		try
+		{
+			$date =  is_null($date) ? Carbon::today()->toDateString() : $date;
+
+			$this->db->table(Config::get('throttle::tables.subscription_feature_usage'))->insert([
+				'subscription_id' => $subscription['id'],
+				'feature_id' => $featureId,
+				'used_quantity' => $this->getUsageForFeature($subscription['user_id'], $feature['identifier'], $date),
+				'date' => $date
+			]);
+		}
+		catch(PDOException $e)
+		{
+			throw new Exceptions\InternalException;
+		}
+	}
 }

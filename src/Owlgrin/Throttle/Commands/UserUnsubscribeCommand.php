@@ -40,7 +40,7 @@ class UserUnsubscribeCommand extends Command {
 		$userId = $this->argument('user');
 
 		Throttle::unsubscribe($userId);
-		
+
 		$this->info('User With id '.$userId.' has been unsubscribed');
 	}
 

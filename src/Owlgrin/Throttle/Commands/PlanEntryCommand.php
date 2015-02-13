@@ -42,11 +42,11 @@ class PlanEntryCommand extends Command {
 	{
 
 		$plan = $this->argument('plan');
-		
+
 		$interactive = $this->option('i');
 
 		if($interactive)
-		{			
+		{
 			$plan = $this->addPlanInteractively();
 		}
 		else
@@ -72,7 +72,7 @@ class PlanEntryCommand extends Command {
 
 		$this->info("Lets add Features Now");
 
-		do 
+		do
 		{
 			$plan['features'][] = $this->addFeatures();
 
@@ -117,8 +117,8 @@ class PlanEntryCommand extends Command {
 	{
 		$tiers = [];
 
-		$tiers['rate'] = $this->ask('What would be the rate ?');		
-		$tiers['per_quantity'] = $this->ask('What would be the per_quantity ?');		
+		$tiers['rate'] = $this->ask('What would be the rate ?');
+		$tiers['per_quantity'] = $this->ask('What would be the per_quantity ?');
 		$tiers['limit'] = $this->ask('What would be the limit ?');
 
 		return $tiers;
@@ -132,10 +132,10 @@ class PlanEntryCommand extends Command {
 
 		$this->table(['name', 'identifier', 'description'], [$plan]);
 	}
-	
+
 	protected function representFeaturesInTable($plan)
 	{
-		foreach($plan['features'] as $feature) 
+		foreach($plan['features'] as $feature)
 		{
 			$this->info('Representing feature : "'. $feature['name'] .'" of  plan : "'. $plan['name'] .'"');
 
