@@ -132,13 +132,10 @@ class ThrottleServiceProvider extends ServiceProvider {
 		$this->commands('command.user.unsubscribe');
 		$this->commands('command.user.usage');
 		$this->commands('command.user.limit.increment');
-<<<<<<< HEAD
 		$this->commands('command.switch.plan');
-=======
 		$this->commands('command.add.feature.in.plan');
 		$this->commands('command.update.plan');
 		$this->commands('command.remove.feature.from.plan');
->>>>>>> 05666dc74084303149267bcb11952364ca8911c7
 	}
 
 	protected function registerRepositories()
