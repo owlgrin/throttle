@@ -214,6 +214,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 			//if end date is then then end date id today
 			$endDate = is_null($endDate) ? Carbon::today()->toDateTimeString(): $endDate;
 
+
 			return $this->db->select('
 					select
 						`s`.`plan_id`, `ufu`.`feature_id`,
@@ -233,6 +234,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 						and `ufu`.`date` <= :end_date
 						and `ufu`.`status` = :status
 						and `s`.`id` = :subscription_id
+						AND `ufu`.`feature_id` IN (SELECT `feature_id` FROM `plan_feature`  where `plan_id` = `s`.`plan_id` group by `feature_id`)
 					group by `f`.`id`
 				', [
 					':start_date' => $startDate,
