@@ -217,7 +217,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 
 			return $this->db->select('
 					select
-						`s`.`plan_id`, `ufu`.`feature_id`,
+						`s`.`plan_id`, `pf`.`feature_id`,
 						case `f`.`aggregator`
 							when \'max\' then max(`ufu`.`used_quantity`)
 							when \'sum\' then sum(`ufu`.`used_quantity`)
@@ -226,15 +226,17 @@ class DbSubscriberRepo implements SubscriberRepo {
 						`'.Config::get('throttle::tables.subscription_feature_usage').'` as `ufu`
 						inner join `'.Config::get('throttle::tables.subscriptions').'` as `s`
 						inner join `'.Config::get('throttle::tables.features').'` as `f`
+						inner join `'.Config::get('throttle::tables.plan_feature').'` as `pf`
 					on
 						`s`.`id` = `ufu`.`subscription_id`
 						and `f`.`id` = `ufu`.`feature_id`
+						and `pf`.`plan_id` = `s`.`plan_id`
 					where
 						`ufu`.`date` >= :start_date
 						and `ufu`.`date` <= :end_date
 						and `ufu`.`status` = :status
 						and `s`.`id` = :subscription_id
-					group by `f`.`id`
+					group by `pf`.`feature_id`
 				', [
 					':start_date' => $startDate,
 					':end_date' => $endDate,
