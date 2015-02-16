@@ -38,7 +38,7 @@ class SwitchPlanCommand extends Command {
 	{
 		$userId = $this->argument('user');
 		$planIdentifier = $this->argument('plan');
-	
+
 		Throttle::user($userId)->switchPlan($planIdentifier);
 
 		$this->info('User with ID: '. $userId .' is switched to plan with identifier '.$planIdentifier);

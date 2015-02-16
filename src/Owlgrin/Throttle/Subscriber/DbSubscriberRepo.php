@@ -216,7 +216,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 
 			return $this->db->select('
 					select
-						`s`.`plan_id`, `ufu`.`feature_id`,
+						`s`.`plan_id`, `pf`.`feature_id`,
 						case `f`.`aggregator`
 							when \'max\' then max(`ufu`.`used_quantity`)
 							when \'sum\' then sum(`ufu`.`used_quantity`)
@@ -225,15 +225,17 @@ class DbSubscriberRepo implements SubscriberRepo {
 						`'.Config::get('throttle::tables.subscription_feature_usage').'` as `ufu`
 						inner join `'.Config::get('throttle::tables.subscriptions').'` as `s`
 						inner join `'.Config::get('throttle::tables.features').'` as `f`
+						inner join `'.Config::get('throttle::tables.plan_feature').'` as `pf`
 					on
 						`s`.`id` = `ufu`.`subscription_id`
 						and `f`.`id` = `ufu`.`feature_id`
+						and `pf`.`plan_id` = `s`.`plan_id`
 					where
 						`ufu`.`date` >= :start_date
 						and `ufu`.`date` <= :end_date
 						and `ufu`.`status` = :status
 						and `s`.`id` = :subscription_id
-					group by `f`.`id`
+					group by `pf`.`feature_id`
 				', [
 					':start_date' => $startDate,
 					':end_date' => $endDate,
@@ -389,63 +391,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 			throw new Exceptions\InternalException;
 		}
 	}
-
-	public function switchPlan($subscriptionId, $planIdentifier)
-	{	
-		try
-		{
-			//starting a transition
-			$this->db->beginTransaction();
-
-			$plan = $this->planRepo->getPlanByIdentifier($planIdentifier);
-
-			//switching user to respect plan.
-			$this->db->table(Config::get('throttle::tables.subscriptions'))
-				->where('id', $subscriptionId)
-				->where('is_active', '1')
-				->update(array(
-					'plan_id' => $plan['id'],
-					'subscribed_at' => $this->db->raw('now()')
-				));
-
-			//updating subscription's features limit respective to the plan it is switching.
-			$this->db->update('
-					Update '. 
-						Config::get('throttle::tables.subscription_feature_limit'). ' as `sfl`, 
-						( select 
-							`feature_id`, IF(`limit` IS NULL, NULL, SUM(`limit`)) as `limit` 
-								from 
-									(select 
-										`feature_id`, `limit` 
-										from '. 
-											Config::get('throttle::tables.plan_feature') . ' 
-										where 
-											`plan_id` = :planId order by `tier` desc) as `t2` 
-										group by `feature_id`) as `t1` 
-						set 
-							`sfl`.`limit` = `t1`.`limit` 
-						where 
-							`sfl`.`feature_id` = `t1`.`feature_id` and 
-							`sfl`.`subscription_id` = :subscriptionId', 
-				[
-					':planId' => $plan['id'],
-					':subscriptionId' => $subscriptionId
-				]);
-
-			//committing the work after processing
-			$this->db->commit();
-		
-			return $subscriptionId;
-		}
-		catch(PDOException $e)
-		{
-			//rollback if failed
-			$this->db->rollback();
-
-			throw new Exceptions\InternalException;	
-		}
-	}
-
+	
 	public function updateInitialLimitForFeatures($subscriptionId, $planId)
 	{
 		try
@@ -549,6 +495,47 @@ class DbSubscriberRepo implements SubscriberRepo {
 		}
 		catch(PDOException $e)
 		{
+			throw new Exceptions\InternalException;
+		}
+	}
+
+	public function switchPlan($subscriptionId, $planIdentifier)
+	{
+		try
+		{
+			//starting a transition
+			$this->db->beginTransaction();
+
+			$plan = $this->planRepo->getPlanByIdentifier($planIdentifier);
+
+			//switching user to respect plan.
+			$this->db->table(Config::get('throttle::tables.subscriptions'))
+				->where('id', $subscriptionId)
+				->where('is_active', '1')
+				->update(array(
+					'plan_id' => $plan['id'],
+					'subscribed_at' => $this->db->raw('now()')
+				));
+
+			//update limit of subscription to inactive by plan switch
+			$this->db->table(Config::get('throttle::tables.subscription_feature_limit'))
+				->where('subscription_id', $subscriptionId)
+				->where('status', 'active')
+				->update(['status' => 'inactive-by-plan-switch']);
+
+
+			$this->addInitialLimitForFeatures($subscriptionId, $plan['id']);
+
+			//committing the work after processing
+			$this->db->commit();
+
+			return $subscriptionId;
+		}
+		catch(PDOException $e)
+		{
+			//rollback if failed
+			$this->db->rollback();
+
 			throw new Exceptions\InternalException;
 		}
 	}
