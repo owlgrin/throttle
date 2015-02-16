@@ -106,6 +106,11 @@ class ThrottleServiceProvider extends ServiceProvider {
 			return $app->make('Owlgrin\Throttle\Commands\SwitchPlanCommand');
 		});
 
+		$this->app->bindShared('command.display.plan', function($app)
+		{
+			return $app->make('Owlgrin\Throttle\Commands\DisplayPlanInJsonFormatCommand');
+		});
+
 		$this->commands('command.throttle.table');
 		$this->commands('command.user.subscribe');
 		$this->commands('command.plan.entry');
@@ -118,6 +123,7 @@ class ThrottleServiceProvider extends ServiceProvider {
 		$this->commands('command.user.usage');
 		$this->commands('command.user.limit.increment');
 		$this->commands('command.switch.plan');
+		$this->commands('command.display.plan');
 	}
 
 	protected function registerRepositories()
