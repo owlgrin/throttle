@@ -9,7 +9,6 @@ use Owlgrin\Throttle\Feature\FeatureRepo;
 use Owlgrin\Throttle\Period\PeriodInterface;
 use Owlgrin\Throttle\Usage\UsageRepo;
 use Owlgrin\Throttle\Period\PeriodRepo;
-use Owlgrin\Throttle\Period\CurrentMonthPeriod;
 
 use Owlgrin\Throttle\Exceptions;
 use PDOException, Config;
@@ -500,5 +499,44 @@ class DbSubscriberRepo implements SubscriberRepo {
 		}
 	}
 
+	public function switchPlan($subscriptionId, $planIdentifier)
+	{
+		try
+		{
+			//starting a transition
+			$this->db->beginTransaction();
 
+			$plan = $this->planRepo->getPlanByIdentifier($planIdentifier);
+
+			//switching user to respect plan.
+			$this->db->table(Config::get('throttle::tables.subscriptions'))
+				->where('id', $subscriptionId)
+				->where('is_active', '1')
+				->update(array(
+					'plan_id' => $plan['id'],
+					'subscribed_at' => $this->db->raw('now()')
+				));
+
+			//update limit of subscription to inactive by plan switch
+			$this->db->table(Config::get('throttle::tables.subscription_feature_limit'))
+				->where('subscription_id', $subscriptionId)
+				->where('status', 'active')
+				->update(['status' => 'inactive-by-plan-switch']);
+
+
+			$this->addInitialLimitForFeatures($subscriptionId, $plan['id']);
+
+			//committing the work after processing
+			$this->db->commit();
+
+			return $subscriptionId;
+		}
+		catch(PDOException $e)
+		{
+			//rollback if failed
+			$this->db->rollback();
+
+			throw new Exceptions\InternalException;
+		}
+	}
 }

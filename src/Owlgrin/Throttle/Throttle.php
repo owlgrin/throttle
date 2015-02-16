@@ -200,4 +200,15 @@ class Throttle {
 
 		return $this->subscriber->getUsage($this->subscription['id'], $period->start(), $period->end());
 	}
+
+	//switch user's plan
+	public function switchPlan($planIdentifier)
+	{
+		if(! $this->subscription)
+			throw new Exceptions\NoSubscriptionException;
+
+		$this->subscriber->switchPlan($this->subscription['id'], $planIdentifier);
+
+		$this->user($this->user);
+	}
 }
