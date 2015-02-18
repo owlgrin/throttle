@@ -234,7 +234,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 						and `ufu`.`date` <= :end_date
 						and `ufu`.`status` = :status
 						and `s`.`id` = :subscription_id
-						AND `ufu`.`feature_id` IN (SELECT `feature_id` FROM `plan_feature`  where `plan_id` = `s`.`plan_id` group by `feature_id`)
+						AND `ufu`.`feature_id` IN (SELECT `feature_id` FROM '.Config::get('throttle::tables.plan_feature').'  where `plan_id` = `s`.`plan_id` group by `feature_id`)
 					group by `f`.`id`
 				', [
 					':start_date' => $startDate,
