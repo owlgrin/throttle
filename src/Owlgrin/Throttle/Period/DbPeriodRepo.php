@@ -39,10 +39,10 @@ class DbPeriodRepo implements PeriodRepo {
 		catch(PDOException $e)
 		{
 			$this->db->rollback();
-			
-			throw new Exceptions\InternalException;	
+
+			throw new Exceptions\InternalException;
 		}
-	}	
+	}
 
 	public function unsetPeriod($subscriptionId)
 	{
@@ -55,7 +55,7 @@ class DbPeriodRepo implements PeriodRepo {
 		}
 		catch(PDOException $e)
 		{
-			throw new Exceptions\InternalException;	
+			throw new Exceptions\InternalException;
 		}
 	}
 
@@ -71,7 +71,7 @@ class DbPeriodRepo implements PeriodRepo {
 		}
 		catch(PDOException $e)
 		{
-			throw new Exceptions\InternalException;	
+			throw new Exceptions\InternalException;
 		}
 	}
 
@@ -89,7 +89,7 @@ class DbPeriodRepo implements PeriodRepo {
 		}
 		catch(PDOException $e)
 		{
-			throw new Exceptions\InternalException;	
+			throw new Exceptions\InternalException;
 		}
 	}
 
@@ -103,12 +103,12 @@ class DbPeriodRepo implements PeriodRepo {
 				->where('sp.is_active', 1)
 				->select('sp.starts_at', 'sp.ends_at')
 				->first();
-			
+
 			return $period;
 		}
 		catch(PDOException $e)
 		{
-			throw new Exceptions\InternalException;	
+			throw new Exceptions\InternalException;
 		}
 	}
 
@@ -135,7 +135,7 @@ class DbPeriodRepo implements PeriodRepo {
 		}
 		catch(PDOException $e)
 		{
-			throw new Exceptions\InternalException;	
+			throw new Exceptions\InternalException;
 		}
 	}
 
@@ -163,7 +163,7 @@ class DbPeriodRepo implements PeriodRepo {
 		}
 		catch(PDOException $e)
 		{
-			throw new Exceptions\InternalException;	
+			throw new Exceptions\InternalException;
 		}
 	}
 
@@ -179,11 +179,11 @@ class DbPeriodRepo implements PeriodRepo {
 							  ->orWhereBetween('sp.starts_at', array($startDate, $endDate));
 		            })->get();
 
-			return count($periods) == 0; // valid only if there's no overlapping periods		
+			return count($periods) == 0; // valid only if there's no overlapping periods
 		}
 		catch(PDOException $e)
 		{
-			throw new Exceptions\InternalException;	
+			throw new Exceptions\InternalException;
 		}
 	}
 }

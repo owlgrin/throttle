@@ -37,7 +37,7 @@ class PayAsYouGoBiller implements Biller{
 	 * @return array
 	 */
 	public function estimate($usages)
-	{		
+	{
 		return $this->calculateByUsages($usages);
 	}
 
@@ -55,9 +55,9 @@ class PayAsYouGoBiller implements Biller{
 		foreach($usages as $index => $feature)
 		{
 			$tiers = $this->getTiersByFeature($feature['plan_id'], $feature['feature_id']);
-			
+
 			$lineItem = $this->calculateByTiers($tiers, $feature['used_quantity']);
-		
+
 			$amount += $lineItem['amount'];
 			$lineItem['limit'] = $this->getFeatureLimit($tiers);
 			$lineItem['usage'] = (int) $feature['used_quantity'];
@@ -121,18 +121,43 @@ class PayAsYouGoBiller implements Biller{
 		$amount = 0;
 		$lineItems = [];
 
-		foreach($tiers as $index => $tier) 
+		foreach($tiers as $index => $tier)
 		{
 			list($lineItem, $usage, $wasLast) = $this->prepareLineItem($tier, $usage);
-			
+
 			$lineItems[] = $lineItem; // adding in the line items
 			$amount += $lineItem['amount']; // adding the tier's amount in the feature's total amount
-			
+
 			// if this was the last tier to be prepared, we will break
 			if($wasLast) break;
 		}
 
+		// if some usage is still left, it would mean
+		// that the user was allowed to use more than
+		// what plan normally offer and we'd calculate
+		// this as an extra usage (based on rate of last
+		// tier).
+
+		if($usage > 0)
+		{
+			$lineItems[] = $this->prepareExtraUsage(end($tiers), $usage); // sending the last tier
+			$amount += $lineItem['amount'];
+		}
+
 		return [$lineItems, $amount];
+	}
+
+	private function prepareExtraUsage($tier, $usage)
+	{
+
+		return $lineItem = [
+			'is_extra' => true,
+			'limit' => $usage,
+			'rate' => (int) $tier['rate'],
+			'rate_per_quantity' => (int) $tier['per_quantity'],
+			'usage' => (int) $usage,
+			'amount' => (int) $tier['rate'] / (int) $tier['per_quantity'] * (int) $usage
+		];
 	}
 
 	/**
@@ -158,6 +183,7 @@ class PayAsYouGoBiller implements Biller{
 		}
 
 		$lineItem = [
+			'is_extra' => false,
 			'limit' => (int) $tier['limit'],
 			'rate' => (int) $tier['rate'],
 			'rate_per_quantity' => (int) $tier['per_quantity'],

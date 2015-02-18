@@ -55,10 +55,10 @@ class GetUsageOfUserCommand extends Command {
 	{
 		if($startDate == null and $endDate == null)
 		{
-			return Throttle::user($userId)->getUsage();			
+			return Throttle::user($userId)->getUsage();
 		}
-		
-		return Throttle::user($userId)->getUsage(new ManualPeriod($startDate, $endDate));			
+
+		return Throttle::user($userId)->getUsage(new ManualPeriod($startDate, $endDate));
 	}
 
 	protected function getArguments()

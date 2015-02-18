@@ -1,7 +1,7 @@
 <?php namespace Owlgrin\Throttle\Subscriber;
 
 interface SubscriberRepo {
-	
+
 	public function all();
 	public function getAllUserIds();
 	public function subscribe($userId, $planIdentifier);
@@ -11,4 +11,9 @@ interface SubscriberRepo {
 	public function left($subscriptionId, $identifier, $start, $left);
 	public function canReduceLimit($subscriptionId, $featureId, $limit);
 	public function incrementLimit($subscriptionId, $featureIdentifier, $value);
+	public function updateInitialLimitForFeatures($subscriptionId, $planId);
+	public function removeUsagesOfSubscription($subscriptionId, $featureId);
+	public function removeLimitsOfSubscription($subscriptionId, $featureId);
+	public function addInitialLimitForNewFeature($subscriptionId, $planId, $featureId);
+	public function findSubscribersByPlanId($planId);
 }
