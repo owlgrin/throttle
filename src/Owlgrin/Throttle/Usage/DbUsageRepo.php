@@ -58,7 +58,7 @@ class DbUsageRepo implements UsageRepo {
 		return $usages;
 	}
 
-	private function getUsageForFeature($userId, $featureIdentifier, $date)
+	public function getUsageForFeature($userId, $featureIdentifier, $date)
 	{
 		if($seeder = Config::get("throttle::seeders.{$featureIdentifier}"))
 		{
