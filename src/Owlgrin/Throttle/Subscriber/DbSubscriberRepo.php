@@ -294,6 +294,29 @@ class DbSubscriberRepo implements SubscriberRepo {
 		}
 	}
 
+	//update usage of a feature by identifier
+	public function refreshUsage($subscriptionId, $identifier, $count = 1, $date = null)
+	{
+		try
+		{
+			$date = is_null($date) ? Carbon::today()->toDateString() : $date;
+
+			$this->db->table(Config::get('throttle::tables.subscription_feature_usage').' AS ufu')
+				->join(Config::get('throttle::tables.features').' AS f', 'ufu.feature_id', '=', 'f.id')
+				->where('ufu.subscription_id', $subscriptionId)
+				->where('f.identifier', $identifier)
+				->where('ufu.date', $date)
+				->where('ufu.status', 'active')
+				->where('ufu.used_quantity', '<', $count)
+				->update(['ufu.used_quantity' => $count]);
+		}
+		catch(PDOException $e)
+		{
+			throw new Exceptions\InternalException;
+		}
+	}
+
+
 	//add usage of a feature identifier
 	private function addUsageByFeatureIdentifier($subscriptionId, $identifier, $usedQuantity)
 	{
@@ -539,4 +562,5 @@ class DbSubscriberRepo implements SubscriberRepo {
 			throw new Exceptions\InternalException;
 		}
 	}
+
 }

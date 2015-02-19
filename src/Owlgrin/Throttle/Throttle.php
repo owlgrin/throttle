@@ -122,6 +122,18 @@ class Throttle {
 		$this->attempts[$identifier] = $count;
 	}
 
+	public function refreshOnAttempt($identifier, $count = 1)
+	{
+		if(is_null(array_get($this->features, $identifier))) return;
+
+		if(is_null($this->subscription))
+			throw new Exceptions\NoSubscriptionException;
+
+		$this->limiter->refreshOnAttempt($this->user, $this->subscription['id'], $identifier, $count, $this->period->start(), $this->period->end());
+
+		$this->attempts[$identifier] = $count;
+	}
+
 	public function can($identifier, $quantity = 1)
 	{
 		if(is_null(array_get($this->features, $identifier))) return true;
