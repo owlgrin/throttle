@@ -337,57 +337,6 @@ class DbSubscriberRepo implements SubscriberRepo {
 		}
 	}
 
-	//returns limit of a feature left
-
-	public function left($subscriptionId, $identifier, $start, $end)
-	{
-		try
-		{
-			$limit = $this->db->select('
-				select
-					`ufl`.`limit`,
-					case `f`.`aggregator`
-						when \'max\' then max(`ufu`.`used_quantity`)
-						when \'sum\' then sum(`ufu`.`used_quantity`)
-					end as `used_quantity`
-				from
-					`'.Config::get('throttle::tables.subscription_feature_usage').'` as `ufu`
-					inner join `'.Config::get('throttle::tables.features').'` as `f`
-					inner join `'.Config::get('throttle::tables.subscription_feature_limit').'` as `ufl`
-				on
-					`ufl`.`subscription_id` = `ufu`.`subscription_id`
-					and `ufu`.`feature_id` = `ufl`.`feature_id`
-					and `f`.`id` = `ufu`.`feature_id`
-				where
-					`ufu`.`date` >= :start_date
-					and `ufu`.`date` <= :end_date
-					and `f`.`identifier` = :identifier
-					and `ufu`.`subscription_id` = :subscriptionId
-					and `ufu`.`status` = :usageStatus
-					and `ufl`.`status` = :limitStatus
-				LIMIT 1
-			', [
-				':start_date' => $start,
-				':end_date' => $end,
-				':identifier' => $identifier,
-				':subscriptionId' => $subscriptionId,
-				':usageStatus' => 'active',
-				':limitStatus' => 'active'
-			]);
-
-
-			if(! is_null($limit[0]['limit']))
-			{
-				return $limit[0]['limit'] - $limit[0]['used_quantity'];
-			}
-
-			return null;
-		}
-		catch(PDOException $e)
-		{
-			throw new Exceptions\InternalException;
-		}
-	}
 
 	/**
 	 * not in use

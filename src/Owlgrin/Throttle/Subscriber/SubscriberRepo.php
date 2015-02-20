@@ -8,7 +8,6 @@ interface SubscriberRepo {
 	public function getUsage($subscriptionId, $startDate, $endDate);
 	public function subscription($userId);
 	public function increment($subscriptionId, $identifier, $count);
-	public function left($subscriptionId, $identifier, $start, $end);
 	public function canReduceLimit($subscriptionId, $featureId, $limit);
 	public function incrementLimit($subscriptionId, $featureIdentifier, $value);
 	public function updateInitialLimitForFeatures($subscriptionId, $planId);
