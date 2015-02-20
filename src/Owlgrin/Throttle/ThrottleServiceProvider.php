@@ -153,6 +153,7 @@ class ThrottleServiceProvider extends ServiceProvider {
 		$this->app->bind('Owlgrin\Throttle\Feature\FeatureRepo', 'Owlgrin\Throttle\Feature\DbFeatureRepo');
 		$this->app->bind('Owlgrin\Throttle\Usage\UsageRepo', 'Owlgrin\Throttle\Usage\DbUsageRepo');
 		$this->app->bind('Owlgrin\Throttle\Limiter\LimiterInterface', 'Owlgrin\Throttle\Limiter\Limiter');
+		$this->app->bind('Owlgrin\Throttle\Left\LeftRepo', 'Owlgrin\Throttle\Left\DbLeftRepo');
 
 		$this->app->singleton('throttle', 'Owlgrin\Throttle\Throttle');
 	}
