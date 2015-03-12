@@ -294,6 +294,29 @@ class DbSubscriberRepo implements SubscriberRepo {
 		}
 	}
 
+	//update usage of a feature by identifier
+	public function refreshUsage($subscriptionId, $identifier, $count = 1, $date = null)
+	{
+		try
+		{
+			$date = is_null($date) ? Carbon::today()->toDateString() : $date;
+
+			$this->db->table(Config::get('throttle::tables.subscription_feature_usage').' AS ufu')
+				->join(Config::get('throttle::tables.features').' AS f', 'ufu.feature_id', '=', 'f.id')
+				->where('ufu.subscription_id', $subscriptionId)
+				->where('f.identifier', $identifier)
+				->where('ufu.date', $date)
+				->where('ufu.status', 'active')
+				->where('ufu.used_quantity', '<', $count)
+				->update(['ufu.used_quantity' => $count]);
+		}
+		catch(PDOException $e)
+		{
+			throw new Exceptions\InternalException;
+		}
+	}
+
+
 	//add usage of a feature identifier
 	private function addUsageByFeatureIdentifier($subscriptionId, $identifier, $usedQuantity)
 	{
@@ -314,57 +337,6 @@ class DbSubscriberRepo implements SubscriberRepo {
 		}
 	}
 
-	//returns limit of a feature left
-
-	public function left($subscriptionId, $identifier, $start, $end)
-	{
-		try
-		{
-			$limit = $this->db->select('
-				select
-					`ufl`.`limit`,
-					case `f`.`aggregator`
-						when \'max\' then max(`ufu`.`used_quantity`)
-						when \'sum\' then sum(`ufu`.`used_quantity`)
-					end as `used_quantity`
-				from
-					`'.Config::get('throttle::tables.subscription_feature_usage').'` as `ufu`
-					inner join `'.Config::get('throttle::tables.features').'` as `f`
-					inner join `'.Config::get('throttle::tables.subscription_feature_limit').'` as `ufl`
-				on
-					`ufl`.`subscription_id` = `ufu`.`subscription_id`
-					and `ufu`.`feature_id` = `ufl`.`feature_id`
-					and `f`.`id` = `ufu`.`feature_id`
-				where
-					`ufu`.`date` >= :start_date
-					and `ufu`.`date` <= :end_date
-					and `f`.`identifier` = :identifier
-					and `ufu`.`subscription_id` = :subscriptionId
-					and `ufu`.`status` = :usageStatus
-					and `ufl`.`status` = :limitStatus
-				LIMIT 1
-			', [
-				':start_date' => $start,
-				':end_date' => $end,
-				':identifier' => $identifier,
-				':subscriptionId' => $subscriptionId,
-				':usageStatus' => 'active',
-				':limitStatus' => 'active'
-			]);
-
-
-			if(! is_null($limit[0]['limit']))
-			{
-				return $limit[0]['limit'] - $limit[0]['used_quantity'];
-			}
-
-			return null;
-		}
-		catch(PDOException $e)
-		{
-			throw new Exceptions\InternalException;
-		}
-	}
 
 	/**
 	 * not in use
@@ -539,4 +511,5 @@ class DbSubscriberRepo implements SubscriberRepo {
 			throw new Exceptions\InternalException;
 		}
 	}
+
 }

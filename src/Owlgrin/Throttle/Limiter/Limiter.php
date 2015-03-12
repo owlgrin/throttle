@@ -5,6 +5,8 @@ use Carbon\Carbon;
 use Illuminate\Database\DatabaseManager as Database;
 use Owlgrin\Throttle\Limiter\LimiterInterface;
 use Owlgrin\Throttle\Subscriber\SubscriberRepo;
+use Owlgrin\Throttle\Left\LeftRepo;
+use Owlgrin\Throttle\Usage\UsageRepo;
 use Owlgrin\Throttle\Exceptions;
 use PDOException, Config;
 
@@ -12,24 +14,28 @@ class Limiter implements LimiterInterface {
 
 	protected $db;
 	protected $subscriberRepo;
+	protected $usageRepo;
+	protected $leftRepo;
 
-	public function __construct(Database $db, SubscriberRepo $subscriberRepo)
+	public function __construct(Database $db, SubscriberRepo $subscriberRepo, UsageRepo $usageRepo, LeftRepo $leftRepo)
 	{
 		$this->db = $db;
 		$this->subscriberRepo = $subscriberRepo;
+		$this->usageRepo = $usageRepo;
+		$this->leftRepo = $leftRepo;
 	}
 
 
 	public function attempt($subscriptionId, $identifier, $count = 1, $start, $end)
 	{
 		try
-		{		
+		{
 			//starting a transition
 			$this->db->beginTransaction();
 
-			$limit = $this->subscriberRepo->left($subscriptionId, $identifier, $start, $end);
+			$left = $this->leftRepo->leftOnAttempt($subscriptionId, $identifier, $start, $end);
 
-			if( ! $this->hasAvailableQuota($limit, $count))
+			if( ! $this->hasAvailableQuota($left, $count))
 			{
 				throw new Exceptions\LimitExceededException('throttle::responses.message.limit_excedeed', ['attributes' => $identifier]);
 			}
@@ -44,7 +50,7 @@ class Limiter implements LimiterInterface {
 			//rollback if failed
 			$this->db->rollback();
 
-			throw new Exceptions\InternalException;	
+			throw new Exceptions\InternalException;
 		}
 	}
 
@@ -55,14 +61,14 @@ class Limiter implements LimiterInterface {
 			//starting a transition
 			$this->db->beginTransaction();
 
-			$limit = $this->subscriberRepo->left($subscriptionId, $identifier, $start, $end);
+			$left = $this->leftRepo->leftOnAttempt($subscriptionId, $identifier, $start, $end);
 
-			$availableQuota = $this->getAvailableQuota($limit, $count);
+			$availableQuota = $this->getAvailableQuota($left, $count);
 
-			$this->subscriberRepo->increment($subscriptionId, $identifier, $availableQuota);	
+			$this->subscriberRepo->increment($subscriptionId, $identifier, $availableQuota);
 
 			//commition the work after processing
-			$this->db->commit();	
+			$this->db->commit();
 
 			return $availableQuota;
 		}
@@ -71,7 +77,7 @@ class Limiter implements LimiterInterface {
 			//rollback if failed
 			$this->db->rollback();
 
-			throw new Exceptions\InternalException;	
+			throw new Exceptions\InternalException;
 		}
 	}
 
@@ -81,7 +87,7 @@ class Limiter implements LimiterInterface {
 		{
 			return $limitLeft >= $countRequested ? $countRequested : $limitLeft;
 		}
-		
+
 		return $countRequested;
 	}
 
@@ -89,7 +95,40 @@ class Limiter implements LimiterInterface {
 	{
 		if( ! is_null($limitLeft))
 			return $limitLeft >= $countRequested;
-		
+
 		return true;
+	}
+
+	public function refreshWithAttempt($userId, $subscriptionId, $identifier, $count = 1, $start, $end)
+	{
+		try
+		{
+			//starting a transition
+			$this->db->beginTransaction();
+
+			//find base usage of the identifier
+			$refreshUsage = $this->usageRepo->getUsageForFeature($userId, $identifier, $date = null);
+
+			//the left usage
+			$left = $this->leftRepo->leftOnRefresh($subscriptionId, $identifier, $refreshUsage);
+
+			if( ! $this->hasAvailableQuota($left, $count))
+			{
+				throw new Exceptions\LimitExceededException('throttle::responses.message.limit_excedeed', ['attributes' => $identifier]);
+			}
+
+			//then update usage
+			$this->subscriberRepo->refreshUsage($subscriptionId, $identifier, $refreshUsage + $count);
+
+			//commition the work after processing
+			$this->db->commit();
+		}
+		catch(PDOException $e)
+		{
+			//rollback if failed
+			$this->db->rollback();
+
+			throw new Exceptions\InternalException;
+		}
 	}
 }
