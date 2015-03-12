@@ -41,13 +41,11 @@ class SwitchPlanCommand extends Command {
 		$userId = $this->argument('user');
 		$planIdentifier = $this->argument('plan');
 
-		$previousBill = Throttle::user($userId)->bill();
+		$oldPlanBill = Throttle::user($userId)->bill();
 
 		Throttle::user($userId)->switchPlan($planIdentifier);
 
-		$currentBill = Throttle::user($userId)->bill();
-
-		IlluminateEvent::fire('throttle.plan.switched', array($userId, $previousBill, $currentBill));
+		IlluminateEvent::fire('throttle.plan.switched', array($userId, $oldPlanBill));
 
 		$this->info('User with ID: '. $userId .' is switched to plan with identifier '.$planIdentifier);
 	}
