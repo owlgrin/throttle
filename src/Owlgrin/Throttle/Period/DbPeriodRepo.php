@@ -15,13 +15,13 @@ class DbPeriodRepo implements PeriodRepo {
 
 	public function store($subscriptionId, $startDate, $endDate)
 	{
+		if( ! $this->isValidPeriodForSubscription($subscriptionId, $startDate, $endDate))
+			throw new Exceptions\InvalidInputException('Invalid period(' . $startDate . '-' . $endDate . ') for Subscription ID: ' . $subscriptionId);
+		
 		try
 		{
 			//starting a transition
 			$this->db->beginTransaction();
-
-			if( ! $this->isValidPeriodForSubscription($subscriptionId, $startDate, $endDate))
-				throw new Exceptions\InvalidInputException('Invalid period(' . $startDate . '-' . $endDate . ') for Subscription ID: ' . $subscriptionId);
 
 			$this->unsetPeriod($subscriptionId);
 
