@@ -57,9 +57,9 @@ class AddSubscriptionPeriodForUserCommand extends Command {
 		$this->info('Starting at.. ' . date('Y-m-d H:i:s'));
 
 		$users = $this->getUsers();
-		
-		foreach($users as $index => $user) 
-		{	
+
+		foreach($users as $index => $user)
+		{
 			Throttle::user($user);
 
 			if($this->isRequiredToUpdatePeriod(Throttle::getPeriod()))
@@ -94,7 +94,7 @@ class AddSubscriptionPeriodForUserCommand extends Command {
 		}
 
 		$this->info('Updating user with ID ' . $user . ' subscription period to ' . $next->start() . ' - ' . $next->end());
-		
+
 		try
 		{
 			Throttle::addPeriod($next);
@@ -109,12 +109,12 @@ class AddSubscriptionPeriodForUserCommand extends Command {
 	{
 		$periodEnd = Carbon::createFromFormat('Y-m-d', $period->end())->endOfDay();
 		$today = Carbon::today()->endOfDay();
-		
+
 		if($periodEnd->lte($today)) return true;
 
-		return false;		
+		return false;
 	}
-	
+
 	protected function getOptions()
 	{
 		return array(
