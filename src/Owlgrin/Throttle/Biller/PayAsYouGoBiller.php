@@ -106,7 +106,7 @@ class PayAsYouGoBiller implements Biller{
 	{
 		list($lineItems, $amount) = $this->prepareLineItems($tiers, $usage);
 
-		return ['tiers' => $lineItems, 'feature_name' => $tiers[0]['name'], 'amount' => $amount];
+		return ['tiers' => $lineItems, 'feature_name' => $tiers[0]['name'], 'feature_identifier' => $tiers[0]['identifier'], 'amount' => $amount];
 	}
 
 	/**
