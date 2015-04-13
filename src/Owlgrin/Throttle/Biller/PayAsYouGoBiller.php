@@ -27,7 +27,7 @@ class PayAsYouGoBiller implements Biller{
 	{
 		$usages = $this->subscription->getUsage($subscriptionId, $startDate, $endDate);
 
-		return $this->calculateByUsages($subscriptionId, $usages);
+		return $this->calculateByUsages($usages, $subscriptionId);
 	}
 
 	/**
@@ -47,7 +47,7 @@ class PayAsYouGoBiller implements Biller{
 	 * @param  array $usages
 	 * @return array
 	 */
-	private function calculateByUsages($subscriptionId, $usages)
+	private function calculateByUsages($usages, $subscriptionId = null)
 	{
 		$amount = 0;
 		$lines = [];
@@ -59,7 +59,10 @@ class PayAsYouGoBiller implements Biller{
 			$lineItem = $this->calculateByTiers($tiers, $feature['used_quantity']);
 
 			$amount += $lineItem['amount'];
-			$lineItem['limit'] = $this->getFeatureLimitBySubscription($subscriptionId, $feature['feature_id']);
+			$lineItem['limit'] = is_null($subscriptionId)
+									? $this->getFeatureLimit($tiers)
+									: $this->getFeatureLimitBySubscription($subscriptionId, $feature['feature_id']);
+
 			$lineItem['usage'] = (int) $feature['used_quantity'];
 			$lines[] = $lineItem;
 		}
@@ -70,6 +73,20 @@ class PayAsYouGoBiller implements Biller{
 	private function getFeatureLimitBySubscription($subscriptionId, $featureId)
 	{
 		return $this->featureRepo->featureLimitBySubscription($subscriptionId, $featureId)['limit'];
+	}
+
+	private function getFeatureLimit($subscriptionId, $featureId)
+	{
+		$limit = 0;
+
+		foreach($tiers as $index => $tier)
+		{
+			if(is_null($tier['limit']))	return null;
+
+			$limit += $tier['limit'];
+		}
+
+		return $limit;
 	}
 
 	/**
