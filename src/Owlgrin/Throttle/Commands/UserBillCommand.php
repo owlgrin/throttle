@@ -34,7 +34,7 @@ class UserBillCommand extends Command {
 	 *
 	 * @return void
 	 */
-	
+
 	public function __construct()
 	{
  		parent::__construct();
@@ -68,7 +68,7 @@ class UserBillCommand extends Command {
 	{
 		return array(
 			array('user', InputArgument::REQUIRED, 'The id of the user who wants to subscribe')
-		);	
+		);
 	}
 
 	protected function getOptions()
@@ -83,7 +83,7 @@ class UserBillCommand extends Command {
 	{
 		$lines = [];
 
-		foreach ($bill['lines'] as $line) 
+		foreach ($bill['lines'] as $line)
 		{
 			unset($line['tiers']);
 			$lines[] = $line;
