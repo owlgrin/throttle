@@ -76,7 +76,7 @@ class PayAsYouGoBiller implements Biller{
 		return $this->featureRepo->featureLimitBySubscription($subscriptionId, $featureId)['limit'];
 	}
 
-	private function getFeatureLimit($subscriptionId, $featureId)
+	private function getFeatureLimit($tiers)
 	{
 		$limit = 0;
 
