@@ -59,6 +59,7 @@ class PayAsYouGoBiller implements Biller{
 			$lineItem = $this->calculateByTiers($tiers, $feature['used_quantity']);
 
 			$amount += $lineItem['amount'];
+
 			$lineItem['limit'] = is_null($subscriptionId)
 									? $this->getFeatureLimit($tiers)
 									: $this->getFeatureLimitBySubscription($subscriptionId, $feature['feature_id']);
