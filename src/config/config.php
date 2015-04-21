@@ -42,7 +42,7 @@ return array(
 	/**
 	 * Set the default throttle plan.
 	 */
-	'plan' => 'your-plan-identifier',
+	'plan' => getenv('THROTTLE_PLAN') ?: 'your-plan-identifier',
 
 	/**
 	 * Define feature indetifier and its seeder class path
