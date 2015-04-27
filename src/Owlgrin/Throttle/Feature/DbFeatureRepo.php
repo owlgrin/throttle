@@ -33,6 +33,22 @@ class DbFeatureRepo implements FeatureRepo {
 		}
 	}
 
+	public function featureLimitBySubscription($subscriptionId, $featureId)
+	{
+		try
+		{
+			return $this->db->table(Config::get('throttle::tables.subscription_feature_limit'))
+				->where('subscription_id', $subscriptionId)
+				->where('feature_id', $featureId)
+				->where('status', 'active')
+				->first();
+		}
+		catch(PDOException $e)
+		{
+			throw new Exceptions\InternalException;
+		}
+	}
+
 	public function allForUser($userId)
 	{
 		try
