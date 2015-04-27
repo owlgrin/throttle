@@ -1,22 +1,24 @@
 <?php
-
-/**
- * Creates next period end from current one.
- * @param  string $start
- * @return string
- */
-function get_period_end($start)
+if ( ! function_exists('get_period_end'))
 {
-	$monthGap = 1;
-
-	$start = Carbon\Carbon::createFromFormat('Y-m-d', $start);
-
-	$end = $start->copy()->addMonth();
-
-	if($end->month - $start->month > $monthGap)
+	/**
+	 * Creates next period end from current one.
+	 * @param  string $start
+	 * @return string
+	 */
+	function get_period_end($start)
 	{
-		$end = $end->subMonths($end->month - $start->month - $monthGap)->endOfMonth();
-	}
+		$monthGap = 1;
 
-	return $end->subDay();
+		$start = Carbon\Carbon::createFromFormat('Y-m-d', $start);
+
+		$end = $start->copy()->addMonth();
+
+		if($end->month - $start->month > $monthGap)
+		{
+			$end = $end->subMonths($end->month - $start->month - $monthGap)->endOfMonth();
+		}
+
+		return $end->subDay();
+	}
 }

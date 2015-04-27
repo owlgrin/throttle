@@ -219,7 +219,7 @@ class Throttle {
 		if(! $this->subscription)
 			throw new Exceptions\NoSubscriptionException;
 
-		$this->subscriber->switchPlan($this->subscription['id'], $planIdentifier);
+		$this->subscriber->switchPlan($this->subscription['id'], $this->subscription['plan_id'], $planIdentifier);
 
 		$this->user($this->user);
 	}

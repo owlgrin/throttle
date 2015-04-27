@@ -471,7 +471,7 @@ class DbSubscriberRepo implements SubscriberRepo {
 		}
 	}
 
-	public function switchPlan($subscriptionId, $planIdentifier)
+	public function switchPlan($subscriptionId, $oldPlanId, $planIdentifier)
 	{
 		try
 		{
@@ -479,6 +479,9 @@ class DbSubscriberRepo implements SubscriberRepo {
 			$this->db->beginTransaction();
 
 			$plan = $this->planRepo->getPlanByIdentifier($planIdentifier);
+
+			//if user is already in that plan !! then return
+			if($plan['id'] == $oldPlanId) return;
 
 			//switching user to respect plan.
 			$this->db->table(Config::get('throttle::tables.subscriptions'))
